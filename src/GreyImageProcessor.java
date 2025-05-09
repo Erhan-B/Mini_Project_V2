@@ -2,13 +2,18 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 
 import javax.imageio.ImageIO;
 
 public class GreyImageProcessor {
+	public static void processImage(String filePath, int i) {
+		BufferedImage grey = greyScale(filePath, i);
+		//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
+		BufferedImage binary = threshold(grey, 200, i);
+	}
 	
-	
-	public static void greyScale(String filePath) {
+	public static BufferedImage greyScale(String filePath, int i) {
 		try {
 			//Read image to be processed
 			BufferedImage colourImage = ImageIO.read(new File(filePath));
@@ -29,20 +34,55 @@ public class GreyImageProcessor {
 				}
 			}
 			
-			ImageIO.write(greyImage, "png", new File(filePath + "_greyscale.png"));
+			ImageIO.write(greyImage, "png", new File("output/image_"+ i + "_greyscale.png"));
+			return greyImage;
 		} catch(IOException ex) {
 			ex.printStackTrace();
 		}
+		return null;
 	}
 	
-	public static void threshold(String filePath, int threshold) {
+	public static BufferedImage downSample(BufferedImage greyImage, int blockSize, int i) {
 		try {
-			BufferedImage greyImage = ImageIO.read(new File(filePath));
-			BufferedImage binaryImage = new BufferedImage(greyImage.getWidth(), greyImage.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+			BufferedImage result = new BufferedImage(greyImage.getWidth()/blockSize, greyImage.getHeight()/blockSize, BufferedImage.TYPE_BYTE_GRAY);
 			
-			for(int y = 0; y < greyImage.getHeight(); y++) {
-				for(int x = 0; x < greyImage.getWidth(); x++) {
-					int rgb = greyImage.getRGB(x, y);
+			for(int blockY = 0; blockY < greyImage.getHeight()/blockSize; blockY++) {
+				for(int blockX = 0; blockX < greyImage.getWidth()/blockSize; blockX++) {
+					int greySum = 0;
+					int pixelCount = 0;
+					for(int y = 0; y < blockSize; y++) {
+						for(int x = 0; x < blockSize; x++) {
+							int py = blockY * blockSize + y;
+							int px = blockX * blockSize + x;
+							
+							if(py < greyImage.getHeight() && px < greyImage.getWidth()) {
+								int greyValue = new Color(greyImage.getRGB(px, py)).getRed();
+								greySum += greyValue;
+								pixelCount++;
+							}
+						}
+					}
+					int average = greySum/pixelCount;
+					Color avgColour = new Color(average, average, average);
+					result.setRGB(blockX, blockY, avgColour.getRGB());
+				}
+			}
+			ImageIO.write(result, "png", new File("output/image_"+ i + "_average.png"));
+			return result;
+			
+		} catch(IOException ex) {
+			ex.printStackTrace();
+		}
+		return null;
+	}
+	
+	public static BufferedImage threshold(BufferedImage downSample, int threshold, int i) {
+		try {
+			BufferedImage binaryImage = new BufferedImage(downSample.getWidth(), downSample.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+			
+			for(int y = 0; y < downSample.getHeight(); y++) {
+				for(int x = 0; x < downSample.getWidth(); x++) {
+					int rgb = downSample.getRGB(x, y);
 					int grey = new Color(rgb).getRed();
 					int binaryColour;
 					if(grey >= threshold) {
@@ -58,9 +98,11 @@ public class GreyImageProcessor {
 				}
 			}
 			
-			ImageIO.write(binaryImage, "png", new File(filePath + "_binary.png"));
+			ImageIO.write(binaryImage, "png", new File("output/image_"+ i + "_binary.png"));
+			return binaryImage;
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
+		return null;
 	}
 }

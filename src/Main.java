@@ -16,8 +16,7 @@ public class Main {
 		for(int i = 2; i < 6; i++) {
 			imageList[i] = "data/image_" + i +".jpg";
 			System.out.println(imageList[i]);
-			GreyImageProcessor.greyScale(imageList[i]);
-			GreyImageProcessor.threshold(imageList[i], 200);
+			GreyImageProcessor.processImage(imageList[i],i);
 		}
 
 			
