@@ -29,7 +29,7 @@ public class GreyImageProcessor {
 				}
 			}
 			
-			ImageIO.write(greyImage, "png", new File("output/parking_lot_grey.png"));
+			ImageIO.write(greyImage, "png", new File(filePath + "_greyscale.png"));
 		} catch(IOException ex) {
 			ex.printStackTrace();
 		}
@@ -58,7 +58,7 @@ public class GreyImageProcessor {
 				}
 			}
 			
-			ImageIO.write(binaryImage, "png", new File("output/parking_lot_binary.png"));
+			ImageIO.write(binaryImage, "png", new File(filePath + "_binary.png"));
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}

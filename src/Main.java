@@ -10,9 +10,27 @@ import javax.imageio.ImageIO;
 public class Main {
 
 	public static void main(String[] args){
-//		try {
-			GreyImageProcessor.greyScale("data/image_1.jpg");
-			GreyImageProcessor.threshold("output/parking_lot_grey.png", 200);
+		String[] imageList = new String[6];
+		//Skip one for now
+		//Need to create ideal parking (drawn) for image_1.jpg
+		for(int i = 2; i < 6; i++) {
+			imageList[i] = "data/image_" + i +".jpg";
+			System.out.println(imageList[i]);
+			GreyImageProcessor.greyScale(imageList[i]);
+			GreyImageProcessor.threshold(imageList[i], 200);
+		}
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			//Old main
+//			try {
 //			File imageFile = new File("data/image_2.jpg");
 //			BufferedImage image = ImageIO.read(imageFile);
 //			ImageProcessor processor = new ImageProcessor();
