@@ -99,7 +99,7 @@ public class A_Star_Classication {
             closedSet.add(current); //Add node to closed set to not search it again
             
             for (Edge edge : current.getEdges()) {
-                Node neighbor = edge.getTo();
+                Node neighbor = edge.getTo(); /////////////////////Potential/////////////////////// 
                                 
                 //Skip if neighbour is already evaluated or is an occupied parking spot
                 //(unless it's our starting parking spot)
@@ -152,7 +152,7 @@ public class A_Star_Classication {
             
             //Add all connected nodes to the queue
             for (Edge edge : current.getEdges()) {
-                Node neighbor = edge.getTo();
+                Node neighbor = edge.getTo(); /////////////////////Potential/////////////////////// 
                 if (!visited.contains(neighbor)) {
                     visited.add(neighbor);
                     queue.offer(neighbor);
