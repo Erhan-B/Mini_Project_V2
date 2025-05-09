@@ -13,7 +13,8 @@ public class GreyImageProcessor {
 		//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
 		BufferedImage binary = threshold(grey, 200, i);
 		BufferedImage edge =  edges(grey, 30, i);
-		medianFilter(edge, i);
+		BufferedImage filtered = medianFilter(edge, i);
+//		downSample(filtered, 2, i);
 	}
 	
 	/**
@@ -164,9 +165,17 @@ public class GreyImageProcessor {
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
+		System.err.println("Could not process image");
 		return null;
 	}
 	
+	/**
+	 * Method to reduce some of the noise on the images created by the edges method
+	 * 
+	 * @param image
+	 * @param i
+	 * @return
+	 */
 	public static BufferedImage medianFilter(BufferedImage image, int i) {
 	    int width = image.getWidth();
 	    int height = image.getHeight();

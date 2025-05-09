@@ -17,8 +17,8 @@ public class Main {
 			imageList[i] = "data/image_" + i +".jpg";
 			System.out.println(imageList[i]);
 			GreyImageProcessor.processImage(imageList[i],i);
+			
 		}
-
 			
 			
 			
