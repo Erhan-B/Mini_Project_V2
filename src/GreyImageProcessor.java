@@ -1,8 +1,8 @@
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.Buffer;
 import java.util.Arrays;
 
 import javax.imageio.ImageIO;
@@ -11,10 +11,52 @@ public class GreyImageProcessor {
 	public static void processImage(String filePath, int i) {
 		BufferedImage grey = greyScale(filePath, i);
 		//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
-		BufferedImage binary = threshold(grey, 200, i);
+		threshold(grey, 200, i);
 		BufferedImage edge =  edges(grey, 30, i);
 		BufferedImage filtered = medianFilter(edge, i);
 //		downSample(filtered, 2, i);
+		Node[][] grid = createRoads(filtered, 5, 50, 50, 10, 0.005);
+		
+	    BufferedImage visual = visualizeGrid(grid, 10);
+	    File outputfile = new File("output/grid_result_" + i + ".png");
+	    try {
+			ImageIO.write(visual, "png", outputfile);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    System.out.println("Grid visualization saved as grid_result" + i + ".png");
+	}
+	
+	public static BufferedImage visualizeGrid(Node[][] grid, int scale) {
+	    int width = grid[0].length * scale;
+	    int height = grid.length * scale;
+
+	    BufferedImage output = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+	    Graphics2D g = output.createGraphics();
+
+	    for (int y = 0; y < grid.length; y++) {
+	        for (int x = 0; x < grid[0].length; x++) {
+	            Node node = grid[y][x];
+	            Color color;
+
+	            if (node == null) {
+	                color = Color.BLACK; // Empty/invalid
+	            } else if (node.getType() == Node.NodeType.ENTRANCE) {
+	                color = Color.GREEN; // Entrance
+	            } else if (node.getType() == Node.NodeType.ROAD) {
+	                color = Color.WHITE; // Road
+	            } else {
+	                color = Color.RED; // Unknown (just in case)
+	            }
+
+	            g.setColor(color);
+	            g.fillRect(x * scale, y * scale, scale, scale);
+	        }
+	    }
+
+	    g.dispose();
+	    return output;
 	}
 	
 	/**
@@ -208,5 +250,48 @@ public class GreyImageProcessor {
 		}
 	    return output;
 	}
-
+	
+	/**
+	 * 
+	 * @param image The filtered edge image to be processed
+	 * @param scale The factor by which to scale the image down
+	 * 		  		1x is original, 2x is half the original etc
+	 * @return
+	 */
+	public static Node[][] createRoads(BufferedImage image, int scale, int entranceX, int entranceY, int blockSize, double edgePercentage) {	
+		int width = image.getWidth();
+		int height = image.getHeight();
+		Node[][] grid = new Node[height/scale][width/scale];
+		
+		int entranceGridX = Math.round((float) entranceX/scale);
+		int entranceGridY = Math.round((float) entranceY/scale);
+		grid[entranceGridY][entranceGridX] = new Node(entranceGridX, entranceGridY,Node.NodeType.ENTRANCE,false);
+		for(int y = 0; y < height/scale; y++) {
+			for(int x = 0; x < width/scale; x++) {
+				int edgeCounter = 0;
+				for(int by = 0; by < blockSize; by++) {
+					for(int bx = 0; bx < blockSize; bx++) {
+						int pixelX = x * scale + bx;
+						int pixelY = y * scale + by;
+						
+						if(pixelX >= width || pixelY >= height) {
+							continue;
+						}
+						
+						int colour = new Color(image.getRGB(pixelX, pixelY)).getRed();
+						if(colour > 100) {
+							edgeCounter++;
+						}
+					}
+				}
+				int totalPixels = (int) Math.pow(blockSize, 2);
+				if(((double)edgeCounter/totalPixels) < edgePercentage) {
+					grid[y][x] = new Node(x,y,Node.NodeType.ROAD,false);
+				}
+			}
+		}
+		return grid;
+	}
+	
+	
 }

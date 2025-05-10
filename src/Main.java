@@ -20,8 +20,8 @@ public class Main {
 			
 		}
 			
-			
-			
+//			GreyImageProcessor.processImage("data/image_2.jpg", 2);
+
 			
 			
 			
