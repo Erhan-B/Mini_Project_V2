@@ -1,3 +1,7 @@
+/**
+ * @author E Bredell 222024369
+ * @version Mini_Project
+ */
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -7,6 +11,14 @@ import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
+/**
+ * Class that handles the process of taking an image and creating a node graph from it
+ * First the image is converted to greyscale
+ * then the image is passed through a method to create a binary image from the edges
+ * The edge image is then passed through a method to reduce some of the noise present
+ * The binary edge image is passed through the createNodes method which creates a grid of nodes
+ * The grid of nodes then gets connected with edges and the parking spots get detected
+ */
 public class GreyImageProcessor {
 	public static void processImage(String filePath, int i) {
 		BufferedImage grey = greyScale(filePath, i);
@@ -15,7 +27,7 @@ public class GreyImageProcessor {
 		BufferedImage edge =  edges(grey, 30, i);
 		BufferedImage filtered = medianFilter(edge, i);
 //		downSample(filtered, 2, i);
-		Node[][] grid = createRoads(filtered, 5, 50, 50, 10, 0.005);
+		Node[][] grid = createNodes(filtered, 5, 50, 50, 10, 0.005);
 		
 	    BufferedImage visual = visualizeGrid(grid, 10);
 	    File outputfile = new File("output/grid_result_" + i + ".png");
@@ -258,7 +270,7 @@ public class GreyImageProcessor {
 	 * 		  		1x is original, 2x is half the original etc
 	 * @return
 	 */
-	public static Node[][] createRoads(BufferedImage image, int scale, int entranceX, int entranceY, int blockSize, double edgePercentage) {	
+	public static Node[][] createNodes(BufferedImage image, int scale, int entranceX, int entranceY, int blockSize, double edgePercentage) {	
 		int width = image.getWidth();
 		int height = image.getHeight();
 		Node[][] grid = new Node[height/scale][width/scale];
@@ -284,14 +296,57 @@ public class GreyImageProcessor {
 						}
 					}
 				}
-				int totalPixels = (int) Math.pow(blockSize, 2);
+				int totalPixels = blockSize * blockSize;
 				if(((double)edgeCounter/totalPixels) < edgePercentage) {
 					grid[y][x] = new Node(x,y,Node.NodeType.ROAD,false);
 				}
 			}
 		}
+		createEdges(grid);
 		return grid;
 	}
 	
+	public static void createEdges(Node[][] grid) {
+		for(int y = 0; y < grid.length; y++) {
+			for(int x = 0; x < grid[0].length; x++) {
+				Node current = grid[y][x];
+				int[][] directions = {
+						{0,1}, //Positive x
+						{0,-1}, //Negative x
+						{1,0}, //Positive y
+						{-1,0} //Negative y
+				};
+				
+				for(int[] dir : directions) {
+					int nx = x + dir[0];
+		            int ny = y + dir[1];
+		            if (nx >= 0 && nx < grid[0].length && ny >= 0 && ny < grid.length) {
+		            	Node neighbor = grid[ny][nx];
+		            	if(neighbor == null) { continue; }
+		            	if(current == null) { continue; }
+		            	Edge edge = new Edge(current, neighbor, current.distanceTo(neighbor));
+		            	current.addEdge(edge);
+		            }
+				}
+			}
+		}
+		
+		//For debug
+//		for (int y = 0; y < grid.length; y++) {
+//		    for (int x = 0; x < grid[0].length; x++) {
+//		        Node node = grid[y][x];
+//		        if(node != null) {
+//		        if (!node.getEdges().isEmpty()) {
+//		        	
+//		        		 System.out.println("Node at (" + y + "," + x + ") has " + node.getEdges().size() + " neighbors.");
+//		        	}
+//		        }
+//		    }
+//		}
+
+	}
 	
+	public void detectParkingSpots() {
+		
+	}
 }
