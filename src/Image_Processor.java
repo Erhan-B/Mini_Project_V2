@@ -27,6 +27,11 @@ public class Image_Processor {
 	private static Node[][] grid;
 	private Node entrance;
 	private Pair<Integer,Integer> entranceCoord;
+	private static int entranceMinX;
+	private static int entranceMaxX;
+	private static int entranceMinY;
+	private static int entranceMaxY;
+
 	
 	public Image_Processor() {
 		grid = null;
@@ -45,9 +50,9 @@ public class Image_Processor {
 			//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
 			threshold(grey, 200, i);
 			BufferedImage edge =  edges(grey, 30, i);
-//			BufferedImage filtered = medianFilter(edge, i);
+			BufferedImage filtered = medianFilter(edge, i);
 //			downSample(filtered, 2, i);
-			grid = processor.createNodes(edge, 5, processor.entranceCoord.getKey(), processor.entranceCoord.getValue(), 10, 0.005);
+			grid = processor.createNodes(filtered, 5, processor.entranceCoord.getKey(), processor.entranceCoord.getValue(), 10, 0.005);
 			
 		    BufferedImage visual = visualizeGrid(grid, 10);
 		    File outputfile = new File("output/grid_result_" + i + ".png");
@@ -86,12 +91,17 @@ public class Image_Processor {
 			int centerX = (maxX + minX)/2;
 			int centerY = (maxY + minY)/2;
 			
+			entranceMinX = minX;
+			entranceMaxX = maxX;
+			entranceMinY = minY;
+			entranceMaxY = maxY;
+			
 			entranceCoord = new Pair<Integer, Integer> (centerX,centerY);
 			System.out.println("Entrance coords: (" + entranceCoord.getKey() + "," + entranceCoord.getValue() + ")");
 		}
 		else {
 			System.err.println("Image Processor: No entrance found");
-		}
+		}	
 	}
 	
 	
@@ -214,6 +224,7 @@ public class Image_Processor {
 	public static BufferedImage edges(BufferedImage greyImage, int threshold, int i) {
 		try {
 			BufferedImage edgeImage = new BufferedImage(greyImage.getWidth(), greyImage.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+
 			for(int y = 0; y < greyImage.getHeight() -1; y++) {
 				for(int x = 0; x < greyImage.getWidth() -1; x++) {
 					int current = new Color(greyImage.getRGB(x, y)).getRed();
@@ -326,6 +337,7 @@ public class Image_Processor {
 	public Node[][] createNodes(BufferedImage image, int scale, int entranceX, int entranceY, int blockSize, double edgePercentage) {	
 		int width = image.getWidth();
 		int height = image.getHeight();
+		int buffer = 10;
 		grid = new Node[height/scale][width/scale];
 		
 		int entranceGridX = Math.round((float) entranceX/scale);
@@ -335,6 +347,14 @@ public class Image_Processor {
 		for(int y = 0; y < height/scale; y++) {
 			for(int x = 0; x < width/scale; x++) {
 				int edgeCounter = 0;
+				int startX = x * scale;
+	            int startY = y * scale;
+				if (startX >= (entranceMinX - buffer) && startX <= (entranceMaxX + buffer) &&
+		                startY >= (entranceMinY - buffer) && startY <= (entranceMaxY + buffer)) {
+		                grid[y][x] = new Node(x, y, Node.NodeType.ENTRANCE, false);
+		                continue;
+		            }
+				
 				for(int by = 0; by < blockSize; by++) {
 					for(int bx = 0; bx < blockSize; bx++) {
 						int pixelX = x * scale + bx;
