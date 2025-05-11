@@ -27,10 +27,10 @@ public class Image_Processor {
 	private static Node[][] grid;
 	private Node entrance;
 	private Pair<Integer,Integer> entranceCoord;
-	private static int entranceMinX;
-	private static int entranceMaxX;
-	private static int entranceMinY;
-	private static int entranceMaxY;
+	private int entranceMinX;
+	private int entranceMaxX;
+	private int entranceMinY;
+	private int entranceMaxY;
 
 	
 	public Image_Processor() {
@@ -50,9 +50,9 @@ public class Image_Processor {
 			//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
 			threshold(grey, 200, i);
 			BufferedImage edge =  edges(grey, 30, i);
-			BufferedImage filtered = medianFilter(edge, i);
+//			BufferedImage filtered = medianFilter(edge, i);
 //			downSample(filtered, 2, i);
-			grid = processor.createNodes(filtered, 5, processor.entranceCoord.getKey(), processor.entranceCoord.getValue(), 10, 0.005);
+			grid = processor.createNodes(edge, 5, processor.entranceCoord.getKey(), processor.entranceCoord.getValue(), 10, 0.005);
 			
 		    BufferedImage visual = visualizeGrid(grid, 10);
 		    File outputfile = new File("output/grid_result_" + i + ".png");
@@ -342,7 +342,6 @@ public class Image_Processor {
 		
 		int entranceGridX = Math.round((float) entranceX/scale);
 		int entranceGridY = Math.round((float) entranceY/scale);
-		grid[entranceGridY][entranceGridX] = new Node(entranceGridX, entranceGridY,Node.NodeType.ENTRANCE,false);
 		entrance = grid[entranceGridY][entranceGridX];
 		for(int y = 0; y < height/scale; y++) {
 			for(int x = 0; x < width/scale; x++) {
@@ -351,10 +350,10 @@ public class Image_Processor {
 	            int startY = y * scale;
 				if (startX >= (entranceMinX - buffer) && startX <= (entranceMaxX + buffer) &&
 		                startY >= (entranceMinY - buffer) && startY <= (entranceMaxY + buffer)) {
-		                grid[y][x] = new Node(x, y, Node.NodeType.ENTRANCE, false);
+		                grid[y][x] = new Node(x, y, Node.NodeType.ROAD, false);
 		                continue;
 		            }
-				
+				grid[entranceGridY][entranceGridX] = new Node(entranceGridY, entranceGridX, Node.NodeType.ENTRANCE,false);
 				for(int by = 0; by < blockSize; by++) {
 					for(int bx = 0; bx < blockSize; bx++) {
 						int pixelX = x * scale + bx;
