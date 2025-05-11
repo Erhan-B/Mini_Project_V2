@@ -8,19 +8,19 @@ import javax.imageio.ImageIO;
 public class Main {
 
 	public static void main(String[] args){
-		String[] imageList = new String[6];
-		//Skip one for now
-		//Need to create ideal parking (drawn) for image_1.jpg
-		for(int i = 1; i < 6; i++) {
-			Image_Processor image = new Image_Processor();
-			imageList[i] = "data/image_" + i +".jpg";
-			System.out.println(imageList[i]);
-			Image_Processor.processImage(imageList[i],i);
-
-			Dijkstra dijkstra = new Dijkstra(image.getGrid(), image.getEntrance());
-			dijkstra.Compute();
-			System.out.println(dijkstra.getClosestDist());
-		}
+//		String[] imageList = new String[6];
+//		//Skip one for now
+//		//Need to create ideal parking (drawn) for image_1.jpg
+//		for(int i = 0; i < 6; i++) {
+//			Image_Processor image = new Image_Processor();
+//			imageList[i] = "data/image_" + i +".jpg";
+//			System.out.println(imageList[i]);
+//			Image_Processor.processImage(imageList[i],i);
+//
+//			Dijkstra dijkstra = new Dijkstra(image.getGrid(), image.getEntrance());
+//			dijkstra.Compute();
+//			System.out.println(dijkstra.getClosestDist());
+//		}
 			
 //			GreyImageProcessor.processImage("data/image_2.jpg", 2);
 
