@@ -13,6 +13,8 @@ import javax.imageio.ImageIO;
 
 import org.w3c.dom.ranges.DocumentRange;
 
+import javafx.util.Pair;
+
 
 /**
  * Class that handles the process of taking an image and creating a node graph from it
@@ -25,25 +27,63 @@ import org.w3c.dom.ranges.DocumentRange;
 public class GreyImageProcessor {
 	private static Node[][] grid;
 	private Node entrance;
+	private Pair<Integer,Integer> entranceCoord;
 	
 	public GreyImageProcessor() {
 		grid = null;
+		entranceCoord = new Pair<>(0,0);
+	}
+	
+	public void setEntrance(BufferedImage image) {
+		int width = image.getWidth();
+		int height = image.getHeight();
+		
+		int minX = width;
+		int minY = height;
+		int maxX = 0;
+		int maxY = 0;
+		
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				int rgb = image.getRGB(x, y);
+				Color colour = new Color(rgb);
+				if(colour.getRed() == 0 && colour.getGreen() == 255 && colour.getBlue() == 0) {
+					if(x < minX) minX = x;
+					if(x > maxX) maxX = x;
+					if(y < minY) minY = y;
+					if(y > maxY) maxY = y;
+				}
+			}
+		}
+		if(maxX != 0) {
+			int centerX = (maxX + minX)/2;
+			int centerY = (maxY + minY)/2;
+			
+			entranceCoord = new Pair<Integer, Integer> (centerX,centerY);
+			System.out.println("Entrance coords: (" + entranceCoord.getKey() + "," + entranceCoord.getValue() + ")");
+		}
+		else {
+			System.out.println("No entrance found");
+		}
 	}
 	
 	public static void processImage(String filePath, int i) {
 		GreyImageProcessor processor = new GreyImageProcessor();
-		BufferedImage grey = greyScale(filePath, i);
-		//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
-		threshold(grey, 200, i);
-		BufferedImage edge =  edges(grey, 30, i);
-//		BufferedImage filtered = medianFilter(edge, i);
-//		downSample(filtered, 2, i);
-		grid = processor.createNodes(edge, 5, 50, 50, 10, 0.005);
-		
-	    BufferedImage visual = visualizeGrid(grid, 10);
-	    File outputfile = new File("output/grid_result_" + i + ".png");
-	    try {
-			ImageIO.write(visual, "png", outputfile);
+		BufferedImage colour;
+		try {
+			colour = ImageIO.read(new File(filePath));
+			processor.setEntrance(colour);
+			BufferedImage grey = greyScale(colour, i);
+			//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
+			threshold(grey, 200, i);
+			BufferedImage edge =  edges(grey, 30, i);
+//			BufferedImage filtered = medianFilter(edge, i);
+//			downSample(filtered, 2, i);
+			grid = processor.createNodes(edge, 5, 50, 50, 10, 0.005);
+			
+		    BufferedImage visual = visualizeGrid(grid, 10);
+		    File outputfile = new File("output/grid_result_" + i + ".png");
+		    ImageIO.write(visual, "png", outputfile);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -88,18 +128,16 @@ public class GreyImageProcessor {
 	 * @param i
 	 * @return
 	 */
-	public static BufferedImage greyScale(String filePath, int i) {
+	public static BufferedImage greyScale(BufferedImage image, int i) {
 		try {
-			//Read image to be processed
-			BufferedImage colourImage = ImageIO.read(new File(filePath));
 			//Create new image that will be filled in with the greyscale representation
-			BufferedImage greyImage = new BufferedImage(colourImage.getWidth(), colourImage.getHeight(),BufferedImage.TYPE_BYTE_GRAY);
+			BufferedImage greyImage = new BufferedImage(image.getWidth(), image.getHeight(),BufferedImage.TYPE_BYTE_GRAY);
 			
 			//Loop through all of the pixels of the colour image
-			for(int y = 0; y < colourImage.getHeight(); y++) {
-				for(int x = 0; x < colourImage.getWidth(); x++) {
+			for(int y = 0; y < image.getHeight(); y++) {
+				for(int x = 0; x < image.getWidth(); x++) {
 					//Get the rgb values of the pixel
-					Color c = new Color(colourImage.getRGB(x, y));
+					Color c = new Color(image.getRGB(x, y));
 					//Calculate the brightness of the pixel
 					int grey = ((c.getRed() + c.getGreen() + c.getBlue()))/3;
 					//Create greyScale
@@ -343,17 +381,17 @@ public class GreyImageProcessor {
 		}
 		
 		//For debug
-		for (int y = 0; y < grid.length; y++) {
-		    for (int x = 0; x < grid[0].length; x++) {
-		        Node node = grid[y][x];
-		        if(node != null) {
-		        if (!node.getEdges().isEmpty()) {
-		        	
-		        		 System.out.println("Node at (" + y + "," + x + ") has " + node.getEdges().size() + " neighbors.");
-		        	}
-		        }
-		    }
-		}
+//		for (int y = 0; y < grid.length; y++) {
+//		    for (int x = 0; x < grid[0].length; x++) {
+//		        Node node = grid[y][x];
+//		        if(node != null) {
+//		        if (!node.getEdges().isEmpty()) {
+//		        	
+//		        		 System.out.println("Node at (" + y + "," + x + ") has " + node.getEdges().size() + " neighbors.");
+//		        	}
+//		        }
+//		    }
+//		}
 
 	}
 	

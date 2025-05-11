@@ -137,6 +137,9 @@ public class Dijkstra {
 	 * @return closestDist the shortest distance to the closest valid parking 
 	 */
 	public double getClosestDist() {
-		return closestDist;
+		if(entrance != null) {
+			return closestDist;
+		}
+		return 0.0;
 	} 
 }
