@@ -138,12 +138,13 @@ public class Dijkstra {
 	 */
 	public double getClosestDist() {
 		if(entrance == null) {
-			return closestDist;
+			System.err.println("Entrance is null");
+			return 0.0;
 		}
 		if(closestDist == Double.MAX_VALUE) {
 			System.out.println("Dijkstra: Couldnt find a parking spot");
 			return -1.0;
 		}
-		return 0.0;
+		return closestDist;
 	} 
 }

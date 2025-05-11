@@ -29,10 +29,6 @@
 		private Node[][] grid;
 		private Node entrance;
 		private Pair<Integer,Integer> entranceCoord;
-		private int entranceMinX;
-		private int entranceMaxX;
-		private int entranceMinY;
-		private int entranceMaxY;
 		
 		private List<Pair<Integer,Integer>> parkingCoords = new ArrayList<>();
 	
@@ -44,22 +40,21 @@
 		}
 		
 		
-		public static void processImage(String imageFilePath, String metaFilePath, int i) {
-			Image_Processor processor = new Image_Processor();
+		public void processImage(String imageFilePath, String metaFilePath, int i) {
 			try {
 				BufferedImage colour = ImageIO.read(new File(imageFilePath));
 				BufferedImage metaImage = ImageIO.read(new File(metaFilePath));
-				processor.findEntrance(metaImage);
-				processor.findParkingSpots(metaImage);
+				findSection(metaImage, 0, 255, 0);
+				findSection(metaImage, 0, 0, 255);
 				BufferedImage grey = greyScale(colour, i);
 				//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
 				threshold(grey, 200, i);
 				BufferedImage edge =  edges(grey, 30, i);
 	//			BufferedImage filtered = medianFilter(edge, i);
 	//			downSample(filtered, 2, i);
-				processor.grid = processor.createNodes(edge, 5, processor.entranceCoord.getKey(), processor.entranceCoord.getValue(), 10, 0.005, processor.parkingCoords);
-				
-			    BufferedImage visual = visualizeGrid(processor.grid, 10);
+				grid = createNodes(edge, 5, entranceCoord.getKey(), entranceCoord.getValue(), 10, 0.005, parkingCoords);
+				createEdges(grid);
+			    BufferedImage visual = visualizeGrid(grid, 10);
 			    File outputfile = new File("output/grid_result_" + i + ".png");
 			    ImageIO.write(visual, "png", outputfile);
 			} catch (FileNotFoundException fnf) {
@@ -71,42 +66,53 @@
 		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
 		}
 		
-		public void findEntrance(BufferedImage image) {
-			int width = image.getWidth();
-			int height = image.getHeight();
-			
-			int minX = width;
-			int minY = height;
-			int maxX = 0;
-			int maxY = 0;
-			
-			for(int y = 0; y < height; y++) {
-				for(int x = 0; x < width; x++) {
-					int rgb = image.getRGB(x, y);
-					Color colour = new Color(rgb);
-					if(colour.getRed() == 0 && colour.getGreen() == 255 && colour.getBlue() == 0) {
-						if(x < minX) minX = x;
-						if(x > maxX) maxX = x;
-						if(y < minY) minY = y;
-						if(y > maxY) maxY = y;
-					}
-				}
-			}
-			if(maxX != 0) {
-				int centerX = (maxX + minX)/2;
-				int centerY = (maxY + minY)/2;
-				
-				entranceMinX = minX;
-				entranceMaxX = maxX;
-				entranceMinY = minY;
-				entranceMaxY = maxY;
-				
-				entranceCoord = new Pair<Integer, Integer> (centerX,centerY);
-				System.out.println("Entrance coords: (" + entranceCoord.getKey() + "," + entranceCoord.getValue() + ")");
-			}
-			else {
-				System.err.println("Image Processor: No entrance found");
-			}	
+		public void findSection(BufferedImage image, int red, int green, int blue) {
+			 int width = image.getWidth();
+			    int height = image.getHeight();
+			    boolean[][] visited = new boolean[height][width];
+
+			    for (int y = 0; y < height; y++) {
+			        for (int x = 0; x < width; x++) {
+			            if (!visited[y][x]) {
+			                Color c = new Color(image.getRGB(x, y));
+			                if (c.getRed() == red && c.getGreen() == green && c.getBlue() == blue) {
+			                    // Found top-left corner of a rectangle
+			                    int maxX = x;
+			                    int maxY = y;
+
+			                    // Expand to right
+			                    while (maxX + 1 < width && new Color(image.getRGB(maxX + 1, y)).equals(c)) {
+			                        maxX++;
+			                    }
+
+			                    // Expand downward
+			                    while (maxY + 1 < height && new Color(image.getRGB(x, maxY + 1)).equals(c)) {
+			                        maxY++;
+			                    }
+
+			                    // Mark all pixels in the rectangle as visited
+			                    for (int yy = y; yy <= maxY; yy++) {
+			                        for (int xx = x; xx <= maxX; xx++) {
+			                            visited[yy][xx] = true;
+			                        }
+			                    }
+
+			                    // Get center
+			                    int centerX = (x + maxX) / 2;
+			                    int centerY = (y + maxY) / 2;
+
+			                    if (red == 0 && green == 255 && blue == 0) {
+			                        entranceCoord = new Pair<>(centerX, centerY);
+			                        entrance = new Node(centerX, centerY, Node.NodeType.ENTRANCE, false);
+			                        System.out.println("Entrance coords: (" + centerX + "," + centerY + ")");
+			                    } else if (red == 0 && green == 0 && blue == 255) {
+			                        parkingCoords.add(new Pair<>(centerX, centerY));
+			                        System.out.println("Added parking coord: (" + centerX + "," + centerY + ")");
+			                    }
+			                }
+			            }
+			        }
+			    }
 		}
 		
 		public void findParkingSpots(BufferedImage image) {
@@ -366,17 +372,20 @@
 			
 			int entranceGridX = Math.round((float) entranceX/scale);
 			int entranceGridY = Math.round((float) entranceY/scale);
-			entrance = grid[entranceGridY][entranceGridX];
+			
+			for (int dy = -5; dy <= 5; dy++) {
+			    for (int dx = -5; dx <= 5; dx++) {
+			        int nx = entranceGridX + dx;
+			        int ny = entranceGridY + dy;
+			        if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
+			            grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
+			        }
+			    }
+			}
 			for(int y = 0; y < height/scale; y++) {
 				for(int x = 0; x < width/scale; x++) {
 					int edgeCounter = 0;
-					int startX = x * scale;
-		            int startY = y * scale;
-					if (startX >= (entranceMinX - buffer) && startX <= (entranceMaxX + buffer) &&
-			                startY >= (entranceMinY - buffer) && startY <= (entranceMaxY + buffer)) {
-			                
-			                continue;
-			            }
+					
 					for(int by = 0; by < blockSize; by++) {
 						for(int bx = 0; bx < blockSize; bx++) {
 							int pixelX = x * scale + bx;
@@ -394,31 +403,21 @@
 					}
 					int totalPixels = blockSize * blockSize;
 					if(((double)edgeCounter/totalPixels) < edgePercentage) {
-						Node.NodeType type = Node.NodeType.ROAD;
-						if(isNearParking(x, y, scale, parkingCoords)) {
-							type = Node.NodeType.PARKING_SPOT;
-							grid[y][x] = new Node(x,y,type,true);
-						}
-						else {
-							grid[y][x] = new Node(x,y,type,false);
-						}
+						grid[y][x] = new Node(x,y,Node.NodeType.ROAD,false);
 					}
 				}
 			}
 			grid[entranceGridY][entranceGridX] = new Node(entranceGridX, entranceGridY, Node.NodeType.ENTRANCE,false);
+			for(Pair<Integer,Integer> p : parkingCoords) {
+				int parkingGridX = Math.round((float) p.getKey()/scale);
+				int parkingGridY = Math.round((float) p.getValue()/scale);
+				grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
+				System.out.println("Parking edges: " + grid[parkingGridY][parkingGridX].getEdges().size());
+				System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
+
+			}
 			createEdges(grid);
 			return grid;
-		}
-		
-		private boolean isNearParking(int x, int y, int scale, List<Pair<Integer,Integer>> parkingCoords) {
-			for(Pair<Integer,Integer> p : parkingCoords) {
-				int px = p.getKey() / scale;
-				int py = p.getKey() / scale;
-				if(Math.abs(px-x) <= 1 && Math.abs(py-y) <=1) {
-					return true;
-				}
-			}
-			return false;
 		}
 		
 		public static void createEdges(Node[][] grid) {
@@ -447,18 +446,17 @@
 			}
 			
 			//For debug
-	//		for (int y = 0; y < grid.length; y++) {
-	//		    for (int x = 0; x < grid[0].length; x++) {
-	//		        Node node = grid[y][x];
-	//		        if(node != null) {
-	//		        if (!node.getEdges().isEmpty()) {
-	//		        	
-	//		        		 System.out.println("Node at (" + y + "," + x + ") has " + node.getEdges().size() + " neighbors.");
-	//		        	}
-	//		        }
-	//		    }
-	//		}
-	
+//			for (int y = 0; y < grid.length; y++) {
+//			    for (int x = 0; x < grid[0].length; x++) {
+//			        Node node = grid[y][x];
+//			        if(node != null) {
+//			        if (!node.getEdges().isEmpty()) {
+//			        	
+//			        		 System.out.println("Node at (" + y + "," + x + ") has " + node.getEdges().size() + " neighbors.");
+//			        	}
+//			        }
+//			    }
+//			}
 		}
 	
 		public Node[][] getGrid() {
