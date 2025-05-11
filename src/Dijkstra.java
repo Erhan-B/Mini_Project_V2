@@ -3,7 +3,11 @@
  * @version Mini project v1
  */
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.PriorityQueue;
+import java.util.Set;
 
 /**
  * Class that implements Dijkstra's algorithm to find the shortest path from the entrance to the an available spot
@@ -18,84 +22,66 @@ public class Dijkstra {
 	//HashMap storing the Double shortest distances from the entrance to each valid node
 	private HashMap<Node, Double> map;
 	
+	private Node entrance;
+	
 	/**
 	 * Parameterized constructor
 	 * @param grid The 2D Node grid
 	 */
-	public Dijkstra(Node[][] grid) {
+	public Dijkstra(Node[][] grid, Node entrance) {
 		this.grid = grid;
 		map = new HashMap<Node, Double>();
+		this.entrance = entrance;
 	}
 	
 	/**
 	 * Method that computes the shortest path to an available parking using Dijkstra's algorithm
 	 */
 	public void Compute() {
-		int rows = grid.length;
-		int cols = grid[0].length;
 		closestDist = Double.MAX_VALUE;
 		
-		//Array that stores the shortest distance from source to each node
-		double dist[][] = new double[rows][cols];
-		//Bool array that stores whether a node is checked
-		boolean visited[][] = new boolean[rows][cols];
+		map.clear();
 		
-		//Initialize all the distances to max and all bools to false
-		//Distance is set to max to represent that we dont have a path calculated
-		for(int i = 0; i < rows; i++) {
-			for(int j = 0; j < cols; j++) {
-				dist[i][j] = Double.MAX_VALUE;
-				visited[i][j] = false;
-			}
+		if(entrance == null) {
+			System.err.println("No entrance found");
+			return;
 		}
 		
-		//Set distance to 0 for the root node
-		dist[0][0] = 0;
-
-		while(true) {
-			//Set the distance to max value to represent that no path has been found yet
-			double lowest = Double.MAX_VALUE;
+		Set<Node> visited = new HashSet<>();
+		PriorityQueue<Node> queue = new PriorityQueue<Node>(Comparator.comparingDouble(node -> map.getOrDefault(node, Double.MAX_VALUE)));
+		
+		map.put(entrance, 0.0);
+		queue.add(entrance);
+		
+		while(!queue.isEmpty()) {
+			Node current = queue.poll();
 			
-			int u = -1;
-			int v = -1;
-			
-			//Loop through all nodes and check if there is a new lowest distance
-			for(int i = 0; i < rows; i++) {
-				for(int j = 0; j < cols; j++) {
-					if(!visited[i][j] && dist[i][j] < lowest) {
-						lowest = dist[i][j];
-						u = i;
-						v = j;
-					}
-				}
+			if(visited.contains(current)) {
+				continue;
 			}
+			visited.add(current);
 			
-			//Check if still at valid index
-			if(u == -1 || v == -1) {
-				break;
+			double currentDist = map.get(current);
+			 
+			if(current.getType() == Node.NodeType.PARKING_SPOT && currentDist < closestDist) {
+				closestParking = current;
+				closestDist = currentDist;
 			}
-			
-			visited[u][v] = true;
 			
 			//Relax the edges of the node
 			try {
-				for(Edge edge : grid[u][v].getEdges()) {
+				for(Edge edge : current.getEdges()) {
 					Node neighbor = edge.getTo();
-					int neighborX = neighbor.getX();
-					int neighborY = neighbor.getY();
 					
 					//If edge is unvisited then calculate and update distance to node
-					if(!visited[neighborY][neighborX]) {
-						double newDist = dist[u][v] + edge.getWeight();
-						//Check if new calculated distance is shorter than previously shortest
-						if(newDist < dist[neighborY][neighborX]) {
-							dist[neighborY][neighborX] = newDist;
-							map.put(neighbor, newDist);
-							if((neighbor.getType() == Node.NodeType.PARKING_SPOT) && dist[neighborY][neighborX] < closestDist) {
-		                        closestParking = neighbor;
-		                        closestDist = dist[neighborY][neighborX];
-		                    }
-						}
+					if(visited.contains(neighbor)) {
+						continue;
+					}
+					
+					double newDist = currentDist + edge.getWeight();
+					if(!map.containsKey(neighbor) || newDist < map.get(neighbor)) {
+						map.put(neighbor, newDist);
+						queue.add(neighbor);
 					}
 				}
 			}

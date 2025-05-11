@@ -3,8 +3,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
-import java.util.function.BinaryOperator;
-
 import javax.imageio.ImageIO;
 
 public class Main {
@@ -13,13 +11,13 @@ public class Main {
 		String[] imageList = new String[6];
 		//Skip one for now
 		//Need to create ideal parking (drawn) for image_1.jpg
-		for(int i = 2; i < 6; i++) {
+		for(int i = 1; i < 6; i++) {
 			GreyImageProcessor image = new GreyImageProcessor();
 			imageList[i] = "data/image_" + i +".jpg";
 			System.out.println(imageList[i]);
 			GreyImageProcessor.processImage(imageList[i],i);
 
-			Dijkstra dijkstra = new Dijkstra(image.getGrid());
+			Dijkstra dijkstra = new Dijkstra(image.getGrid(), image.getEntrance());
 			dijkstra.Compute();
 			System.out.println(dijkstra.getClosestDist());
 		}
