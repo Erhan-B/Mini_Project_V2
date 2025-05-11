@@ -6,12 +6,11 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 
 import javax.imageio.ImageIO;
-
-import org.w3c.dom.ranges.DocumentRange;
 
 import javafx.util.Pair;
 
@@ -24,14 +23,42 @@ import javafx.util.Pair;
  * The binary edge image is passed through the createNodes method which creates a grid of nodes
  * The grid of nodes then gets connected with edges and the parking spots get detected
  */
-public class GreyImageProcessor {
+public class Image_Processor {
 	private static Node[][] grid;
 	private Node entrance;
 	private Pair<Integer,Integer> entranceCoord;
 	
-	public GreyImageProcessor() {
+	public Image_Processor() {
 		grid = null;
+		entrance = new Node(0,0,Node.NodeType.ENTRANCE,false);
 		entranceCoord = new Pair<>(0,0);
+	}
+	
+	
+	public static void processImage(String filePath, int i) {
+		Image_Processor processor = new Image_Processor();
+		BufferedImage colour;
+		try {
+			colour = ImageIO.read(new File(filePath));
+			processor.setEntrance(colour);
+			BufferedImage grey = greyScale(colour, i);
+			//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
+			threshold(grey, 200, i);
+			BufferedImage edge =  edges(grey, 30, i);
+//			BufferedImage filtered = medianFilter(edge, i);
+//			downSample(filtered, 2, i);
+			grid = processor.createNodes(edge, 5, processor.entranceCoord.getKey(), processor.entranceCoord.getValue(), 10, 0.005);
+			
+		    BufferedImage visual = visualizeGrid(grid, 10);
+		    File outputfile = new File("output/grid_result_" + i + ".png");
+		    ImageIO.write(visual, "png", outputfile);
+		} catch (FileNotFoundException fnf) {
+			System.err.println("Image Processor: File not found");
+			fnf.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	    System.out.println("Grid visualization saved as grid_result" + i + ".png");
 	}
 	
 	public void setEntrance(BufferedImage image) {
@@ -63,33 +90,10 @@ public class GreyImageProcessor {
 			System.out.println("Entrance coords: (" + entranceCoord.getKey() + "," + entranceCoord.getValue() + ")");
 		}
 		else {
-			System.out.println("No entrance found");
+			System.err.println("Image Processor: No entrance found");
 		}
 	}
 	
-	public static void processImage(String filePath, int i) {
-		GreyImageProcessor processor = new GreyImageProcessor();
-		BufferedImage colour;
-		try {
-			colour = ImageIO.read(new File(filePath));
-			processor.setEntrance(colour);
-			BufferedImage grey = greyScale(colour, i);
-			//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
-			threshold(grey, 200, i);
-			BufferedImage edge =  edges(grey, 30, i);
-//			BufferedImage filtered = medianFilter(edge, i);
-//			downSample(filtered, 2, i);
-			grid = processor.createNodes(edge, 5, 50, 50, 10, 0.005);
-			
-		    BufferedImage visual = visualizeGrid(grid, 10);
-		    File outputfile = new File("output/grid_result_" + i + ".png");
-		    ImageIO.write(visual, "png", outputfile);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	    System.out.println("Grid visualization saved as grid_result" + i + ".png");
-	}
 	
 	public static BufferedImage visualizeGrid(Node[][] grid, int scale) {
 	    int width = grid[0].length * scale;
@@ -327,6 +331,7 @@ public class GreyImageProcessor {
 		int entranceGridX = Math.round((float) entranceX/scale);
 		int entranceGridY = Math.round((float) entranceY/scale);
 		grid[entranceGridY][entranceGridX] = new Node(entranceGridX, entranceGridY,Node.NodeType.ENTRANCE,false);
+		entrance = grid[entranceGridY][entranceGridX];
 		for(int y = 0; y < height/scale; y++) {
 			for(int x = 0; x < width/scale; x++) {
 				int edgeCounter = 0;

@@ -43,7 +43,7 @@ public class Dijkstra {
 		map.clear();
 		
 		if(entrance == null) {
-			System.err.println("No entrance found");
+			System.err.println("Dijkstra: No entrance found");
 			return;
 		}
 		
@@ -86,7 +86,7 @@ public class Dijkstra {
 				}
 			}
 			catch (NullPointerException e) {
-				System.err.println("Edges are null");
+				System.err.println("Dijkstra: Edges are null");
 				e.printStackTrace();
 			}
 			
@@ -137,8 +137,12 @@ public class Dijkstra {
 	 * @return closestDist the shortest distance to the closest valid parking 
 	 */
 	public double getClosestDist() {
-		if(entrance != null) {
+		if(entrance == null) {
 			return closestDist;
+		}
+		if(closestDist == Double.MAX_VALUE) {
+			System.out.println("Dijkstra: Couldnt find a parking spot");
+			return -1.0;
 		}
 		return 0.0;
 	} 

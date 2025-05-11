@@ -12,10 +12,10 @@ public class Main {
 		//Skip one for now
 		//Need to create ideal parking (drawn) for image_1.jpg
 		for(int i = 1; i < 6; i++) {
-			GreyImageProcessor image = new GreyImageProcessor();
+			Image_Processor image = new Image_Processor();
 			imageList[i] = "data/image_" + i +".jpg";
 			System.out.println(imageList[i]);
-			GreyImageProcessor.processImage(imageList[i],i);
+			Image_Processor.processImage(imageList[i],i);
 
 			Dijkstra dijkstra = new Dijkstra(image.getGrid(), image.getEntrance());
 			dijkstra.Compute();
