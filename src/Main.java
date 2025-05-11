@@ -14,10 +14,14 @@ public class Main {
 		//Skip one for now
 		//Need to create ideal parking (drawn) for image_1.jpg
 		for(int i = 2; i < 6; i++) {
+			GreyImageProcessor image = new GreyImageProcessor();
 			imageList[i] = "data/image_" + i +".jpg";
 			System.out.println(imageList[i]);
 			GreyImageProcessor.processImage(imageList[i],i);
-			
+
+			Dijkstra dijkstra = new Dijkstra(image.getGrid());
+			dijkstra.Compute();
+			System.out.println(dijkstra.getClosestDist());
 		}
 			
 //			GreyImageProcessor.processImage("data/image_2.jpg", 2);

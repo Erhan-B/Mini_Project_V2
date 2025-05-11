@@ -11,6 +11,7 @@ import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 
+
 /**
  * Class that handles the process of taking an image and creating a node graph from it
  * First the image is converted to greyscale
@@ -20,14 +21,22 @@ import javax.imageio.ImageIO;
  * The grid of nodes then gets connected with edges and the parking spots get detected
  */
 public class GreyImageProcessor {
+	private static Node[][] grid;
+	private Node entrance;
+	
+	public GreyImageProcessor() {
+		grid = null;
+	}
+	
 	public static void processImage(String filePath, int i) {
+		GreyImageProcessor processor = new GreyImageProcessor();
 		BufferedImage grey = greyScale(filePath, i);
 		//BufferedImage downSampled = downSample(grey, 2); //This step has varying results
 		threshold(grey, 200, i);
 		BufferedImage edge =  edges(grey, 30, i);
 		BufferedImage filtered = medianFilter(edge, i);
 //		downSample(filtered, 2, i);
-		Node[][] grid = createNodes(filtered, 5, 50, 50, 10, 0.005);
+		grid = processor.createNodes(filtered, 5, 50, 50, 10, 0.005);
 		
 	    BufferedImage visual = visualizeGrid(grid, 10);
 	    File outputfile = new File("output/grid_result_" + i + ".png");
@@ -270,10 +279,10 @@ public class GreyImageProcessor {
 	 * 		  		1x is original, 2x is half the original etc
 	 * @return
 	 */
-	public static Node[][] createNodes(BufferedImage image, int scale, int entranceX, int entranceY, int blockSize, double edgePercentage) {	
+	public Node[][] createNodes(BufferedImage image, int scale, int entranceX, int entranceY, int blockSize, double edgePercentage) {	
 		int width = image.getWidth();
 		int height = image.getHeight();
-		Node[][] grid = new Node[height/scale][width/scale];
+		grid = new Node[height/scale][width/scale];
 		
 		int entranceGridX = Math.round((float) entranceX/scale);
 		int entranceGridY = Math.round((float) entranceY/scale);
@@ -330,7 +339,8 @@ public class GreyImageProcessor {
 				}
 			}
 		}
-		
+		grid[190][255].setAvailable(true);
+		grid[190][255].setType(Node.NodeType.PARKING_SPOT);
 		//For debug
 //		for (int y = 0; y < grid.length; y++) {
 //		    for (int x = 0; x < grid[0].length; x++) {
@@ -348,5 +358,13 @@ public class GreyImageProcessor {
 	
 	public void detectParkingSpots() {
 		
+	}
+	
+	public Node[][] getGrid() {
+		return grid;
+	}
+	
+	public Node getEntrance() {
+		return entrance;
 	}
 }
