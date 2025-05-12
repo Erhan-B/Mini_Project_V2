@@ -29,7 +29,7 @@
 		private Node[][] grid;
 		private Node entrance;
 		private Pair<Integer,Integer> entranceCoord;
-		
+		private Pair<Integer,Integer> gridEntrance;
 		private List<Pair<Integer,Integer>> parkingCoords = new ArrayList<>();
 	
 		
@@ -372,7 +372,7 @@
 			
 			int entranceGridX = Math.round((float) entranceX/scale);
 			int entranceGridY = Math.round((float) entranceY/scale);
-			
+			gridEntrance = new Pair<>(entranceGridX,entranceGridY);
 			for (int dy = -5; dy <= 5; dy++) {
 			    for (int dx = -5; dx <= 5; dx++) {
 			        int nx = entranceGridX + dx;
@@ -407,16 +407,20 @@
 					}
 				}
 			}
-			grid[entranceGridY][entranceGridX] = new Node(entranceGridX, entranceGridY, Node.NodeType.ENTRANCE,false);
+			Node entranceNode = new Node(entranceGridX, entranceGridY, Node.NodeType.ENTRANCE, false);
+			grid[entranceGridY][entranceGridX] = entranceNode;
+			this.entrance = entranceNode;
+
 			for(Pair<Integer,Integer> p : parkingCoords) {
 				int parkingGridX = Math.round((float) p.getKey()/scale);
 				int parkingGridY = Math.round((float) p.getValue()/scale);
 				grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
+				createEdges(grid);
 				System.out.println("Parking edges: " + grid[parkingGridY][parkingGridX].getEdges().size());
 				System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
-
+				
 			}
-			createEdges(grid);
+			System.out.println("Entrance edges: " + grid[entranceGridY][entranceGridX].getEdges().size());
 			return grid;
 		}
 		
@@ -459,6 +463,10 @@
 //			}
 		}
 	
+		public Pair<Integer,Integer> getEntranceGrid() {
+			return gridEntrance;	
+		}
+		
 		public Node[][] getGrid() {
 			return grid;
 		}
