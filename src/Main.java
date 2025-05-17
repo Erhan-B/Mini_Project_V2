@@ -3,8 +3,6 @@
 public class Main {
 
 	public static void main(String[] args){
-
-		
 			Image_Processor processor = new Image_Processor();
 			processor.processImage("data/test_1.png", "data/test_meta.png", 10);
 //			System.out.println(processor.getGrid());
