@@ -3,9 +3,9 @@ import java.util.*;
 /**
  * A* Pathfinder specialized for parking spot to exit navigation
  */
-public class A_Star_Classication {
+public class A_Star_Classification {
 	
-	 public A_Star_Classication() {
+	 public A_Star_Classification() {
 		super();
 	}
 
