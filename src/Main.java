@@ -19,7 +19,7 @@ public class Main {
 			dijkstra.Compute();
 			System.out.println("Closest coordinate: (" + dijkstra.getClosestParking().getX() + "," + dijkstra.getClosestParking().getY() + ")"
 								+ "\nDistance to closest parking: " + dijkstra.getClosestDist());
-			A_Star_Classication aStar = new A_Star_Classication();
+			A_Star_Classification aStar = new A_Star_Classification();
 			double distance = aStar.calculateExitDistance(dijkstra.getClosestParking(), processor.getExitList());
 			System.out.println("A_Star closest distance for exit: " + distance);
 		
