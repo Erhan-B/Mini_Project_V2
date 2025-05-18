@@ -607,4 +607,21 @@
 			}
 			return nodeList;
 		}
+		
+		/**
+		 * Getter for the list of nodes
+		 * @return List<Node> the list of Nodes in the graph
+		 */
+		public List<Node> getNodes() {
+			List<Node> list = new ArrayList<>();
+			for(int y = 0; y < grid.length; y++) {
+				for(int x = 0; x < grid[0].length; x++) {
+					Node current = grid[y][x];
+					if(current != null) {
+						list.add(current);
+					}
+				}
+			}
+			return list;
+		}
 	}
