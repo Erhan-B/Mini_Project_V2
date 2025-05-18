@@ -33,9 +33,8 @@ public class GUI extends Application {
     private Button findPathButton;
     private Button resetButton;
     private int currentImageIndex = 1;
-    private Graph graph;
     private Dijkstra dijkstra;
-    private A_Star_Classication aStar;
+    private A_Star_Classification aStar;
 
     private Label statusLabel;
     private String currentSelectionMode = "NONE";
@@ -191,12 +190,12 @@ public class GUI extends Application {
 
     private void processCurrentImage() {
         try {
-            GreyImageProcessor.processImage("data/image_" + currentImageIndex + ".jpg", currentImageIndex);
+            Image_Processor.processImage("data/image_" + currentImageIndex + ".jpg", currentImageIndex);
             
             processedImage = new Image(new File("output/image_" + currentImageIndex + "_filtered.png").toURI().toString());
             imageView.setImage(processedImage);
             
-            ImageProcessor imageProcessor = new ImageProcessor();
+            Image_Processor imageProcessor = new Image_Processor();
             BufferedImage bufferedImage = ImageIO.read(new File("data/image_" + currentImageIndex + ".jpg"));
             graph = imageProcessor.processImage(bufferedImage);
             nodes = graph.getNodes();
@@ -206,7 +205,7 @@ public class GUI extends Application {
                 .collect(Collectors.toList());
             
             dijkstra = new Dijkstra(graph.createGrid(bufferedImage.getHeight(), bufferedImage.getWidth()));
-            aStar = new A_Star_Classication();
+            aStar = new A_Star_Classification();
             
             selectEntranceBtn.setDisable(false);
             selectExitBtn.setDisable(true);

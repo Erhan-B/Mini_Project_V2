@@ -1,54 +1,28 @@
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.List;
-import java.util.function.BinaryOperator;
 
-import javax.imageio.ImageIO;
 
 public class Main {
 
 	public static void main(String[] args){
-		String[] imageList = new String[6];
-		//Skip one for now
-		//Need to create ideal parking (drawn) for image_1.jpg
-		for(int i = 2; i < 6; i++) {
-			imageList[i] = "data/image_" + i +".jpg";
-			System.out.println(imageList[i]);
-			GreyImageProcessor.processImage(imageList[i],i);
-			
-		}
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			//Old main
-//			try {
-//			File imageFile = new File("data/image_2.jpg");
-//			BufferedImage image = ImageIO.read(imageFile);
-//			ImageProcessor processor = new ImageProcessor();
-//			Graph graph = processor.processImage(image);
-//			List<Node> list = graph.getNodes();
-//			System.out.println(list);
-//			for(Node n : list) {
-//				n.getCameFrom();
-//				System.out.println(n);
-//			}
-//			Dijkstra dijkstra = new Dijkstra(graph.createGrid(10, 10));
-//			dijkstra.Compute();
-//		} catch (FileNotFoundException fnf) {
-//			fnf.printStackTrace();
-//		} catch (IOException ex) {
-//			ex.printStackTrace();
-//		}
+			Image_Processor processor = new Image_Processor();
+			processor.processImage("data/test_1.png", "data/test_meta.png", 10);
+//			System.out.println(processor.getGrid());
+			System.out.println("Entrance:" + processor.getEntrance().getX() + " " + processor.getEntrance().getY());
+//			Node[][] grid = processor.getGrid();
+//			Node entranceFromGrid = grid[processor.getEntranceGrid().getValue()][processor.getEntranceGrid().getKey()];
+//			Node entranceFromGetter = processor.getEntrance();
+
+//			System.out.println("Same object? " + (entranceFromGrid == entranceFromGetter));
+//			System.out.println("Grid entrance edges: " + entranceFromGrid.getEdges().size());
+//			System.out.println("Getter entrance edges: " + entranceFromGetter.getEdges().size());
+
+			Dijkstra dijkstra = new Dijkstra(processor.getGrid(), processor.getEntrance());
+			dijkstra.Compute();
+			System.out.println("Closest coordinate: (" + dijkstra.getClosestParking().getX() + "," + dijkstra.getClosestParking().getY() + ")"
+								+ "\nDistance to closest parking: " + dijkstra.getClosestDist());
+			A_Star_Classification aStar = new A_Star_Classification();
+			double distance = aStar.calculateExitDistance(dijkstra.getClosestParking(), processor.getExitList());
+			System.out.println("A_Star closest distance for exit: " + distance);
 		
-		
-		
-	}
+    }
 }
+
