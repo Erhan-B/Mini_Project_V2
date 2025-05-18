@@ -1,266 +1,366 @@
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.*;
 import javafx.stage.Stage;
-import javafx.scene.control.Button;
-import javafx.scene.layout.VBox;
-import javafx.scene.layout.HBox;
-import javafx.geometry.Insets;
-import javafx.scene.text.Text;
-import javafx.scene.control.Label;
-import javafx.animation.PathTransition;
-import javafx.animation.FillTransition;
-import javafx.scene.shape.Path;
-import javafx.scene.shape.MoveTo;
-import javafx.scene.shape.LineTo;
+import javafx.scene.control.*;
+import javafx.scene.image.*;
+import javafx.scene.input.MouseEvent;
+import javafx.geometry.*;
+import javafx.animation.*;
 import javafx.util.Duration;
-import javafx.scene.shape.Circle;
+import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
 public class GUI extends Application {
-    private static final int SPOT_WIDTH = 60;
-    private static final int SPOT_HEIGHT = 30;
-    private static final int LANE_WIDTH = 80;
-    private static final int VEHICLE_SIZE = 15;
-    private static final int PARKING_BAY_WIDTH = 400;
-    private static final int MAIN_LANE_WIDTH = 40;
-    
-    private Pane parkingLotPane;
-    private List<ParkingSpot> parkingSpots;
-    private Rectangle exit;
-    private Circle car;
-    
-    private enum Distance {
-        CLOSE(Color.LIGHTGREEN, "Close to Entrance"),
-        MEDIUM(Color.LIGHTYELLOW, "Medium Distance"),
-        FAR(Color.LIGHTPINK, "Far from Entrance");
-        
-        private final Color color;
-        private final String label;
-        
-        Distance(Color color, String label) {
-            this.color = color;
-            this.label = label;
-        }
-    }
-    
-    private static class ParkingSpot {
-        Rectangle rect;
-        int row;
-        int col;
-        boolean isOccupied;
-        Distance distance;
-        
-        ParkingSpot(Rectangle rect, int row, int col, Distance distance) {
-            this.rect = rect;
-            this.row = row;
-            this.col = col;
-            this.isOccupied = false;
-            this.distance = distance;
-        }
-    }
+    private ImageView imageView;
+    private Image originalImage;
+    private Image processedImage;
+    private List<Node> nodes;
+    private List<Node> parkingSpots;
+    private Node selectedEntrance;
+    private Node selectedExit;
+    private Path currentPath;
+    private Circle entranceMarker;
+    private Circle exitMarker;
+    private Pane overlayPane;
+    private ComboBox<String> imageSelection;
+    private Button processButton;
+    private Button findPathButton;
+    private Button resetButton;
+    private int currentImageIndex = 1;
+    private Graph graph;
+    private Dijkstra dijkstra;
+    private A_Star_Classication aStar;
+
+    private Label statusLabel;
+    private String currentSelectionMode = "NONE";
+    private Button selectEntranceBtn;
+    private Button selectExitBtn;
 
     @Override
     public void start(Stage primaryStage) {
-        VBox root = new VBox(10);
-        root.setPadding(new Insets(10));
+        initializeComponents();
         
-        parkingLotPane = new Pane();
-        parkingLotPane.setStyle("-fx-background-color: #333333;");
-        parkingSpots = new ArrayList<>();
+        BorderPane root = new BorderPane();
         
-        createParkingLot();
+        // Top controls (image selection and processing)
+        HBox topControls = createTopControls();
         
-        HBox legend = createLegend();
+        // Center area (image with overlay)
+        StackPane imageContainer = new StackPane();
+        imageContainer.getChildren().addAll(imageView, overlayPane);
         
-        HBox controls = new HBox(10);
-        Button findPathButton = new Button("Find Parking Spot");
-        Button resetButton = new Button("Reset Parking Lot");
+        // Bottom controls (selection and pathfinding)
+        GridPane bottomControls = createBottomControls();
         
-        findPathButton.setOnAction(e -> simulatePathfinding());
-        resetButton.setOnAction(e -> resetParkingLot());
+        // Status bar
+        statusLabel = new Label("Please process an image first");
+        statusLabel.setStyle("-fx-font-size: 14; -fx-text-fill: white; -fx-background-color: #333; -fx-padding: 10;");
+        statusLabel.setMaxWidth(Double.MAX_VALUE);
         
-        controls.getChildren().addAll(findPathButton, resetButton);
-        root.getChildren().addAll(parkingLotPane, legend, controls);
+        VBox mainContainer = new VBox();
+        mainContainer.getChildren().addAll(topControls, imageContainer, bottomControls, statusLabel);
         
-        Scene scene = new Scene(root, 1100, 850);
-        primaryStage.setTitle("Parking Lot Optimizer - Top Down View");
+        root.setCenter(mainContainer);
+        
+        loadImage(currentImageIndex);
+        
+        Scene scene = new Scene(root, 1000, 850);
+        primaryStage.setTitle("Parking Lot Optimizer");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-    
-    private HBox createLegend() {
-        HBox legend = new HBox(20);
-        legend.setPadding(new Insets(10));
-        legend.setStyle("-fx-background-color: #444444; -fx-padding: 10;");
+
+    private void initializeComponents() {
+        imageView = new ImageView();
+        imageView.setPreserveRatio(true);
+        imageView.setFitWidth(900);
+        imageView.setFitHeight(700);
         
-        for (Distance distance : Distance.values()) {
-            HBox item = new HBox(10);
-            Rectangle rect = new Rectangle(25, 25, distance.color);
-            rect.setStroke(Color.BLACK);
-            Label label = new Label(distance.label);
-            label.setTextFill(Color.WHITE);
-            item.getChildren().addAll(rect, label);
-            legend.getChildren().add(item);
+        overlayPane = new Pane();
+        overlayPane.setMouseTransparent(true);
+        
+        entranceMarker = new Circle(10, Color.GREEN);
+        entranceMarker.setVisible(false);
+        exitMarker = new Circle(10, Color.RED);
+        exitMarker.setVisible(false);
+        currentPath = new Path();
+        currentPath.setStroke(Color.BLUE);
+        currentPath.setStrokeWidth(3);
+        
+        overlayPane.getChildren().addAll(entranceMarker, exitMarker, currentPath);
+        imageView.setOnMouseClicked(this::handleImageClick);
+    }
+
+    private HBox createTopControls() {
+        HBox controls = new HBox(10);
+        controls.setPadding(new Insets(10));
+        controls.setAlignment(Pos.CENTER);
+        
+        imageSelection = new ComboBox<>();
+        for (int i = 1; i <= 6; i++) {
+            imageSelection.getItems().add("Image " + i);
         }
+        imageSelection.getSelectionModel().selectFirst();
+        imageSelection.setOnAction(e -> {
+            currentImageIndex = imageSelection.getSelectionModel().getSelectedIndex() + 1;
+            loadImage(currentImageIndex);
+        });
         
-        HBox occupiedItem = new HBox(10);
-        Rectangle occupiedRect = new Rectangle(25, 25, Color.RED);
-        occupiedRect.setStroke(Color.BLACK);
-        Label occupiedLabel = new Label("Occupied");
-        occupiedLabel.setTextFill(Color.WHITE);
-        occupiedItem.getChildren().addAll(occupiedRect, occupiedLabel);
-        legend.getChildren().add(occupiedItem);
+        processButton = new Button("Process Image");
+        processButton.setOnAction(e -> processCurrentImage());
         
-        return legend;
-    }
-    
-    private void createParkingLot() {
-        // Clear previous elements
-        parkingLotPane.getChildren().clear();
-        parkingSpots.clear();
-        
-        // Create entrance (top center)
-        Rectangle entrance = new Rectangle(530, 50, 100, 30);
-        entrance.setFill(Color.GREEN);
-        entrance.setStroke(Color.BLACK);
-        Text entranceText = new Text(540, 70, "ENTRANCE");
-        entranceText.setFill(Color.WHITE);
-        
-        // Create exit (bottom center)
-        exit = new Rectangle(530, 770, 100, 30);
-        exit.setFill(Color.RED);
-        exit.setStroke(Color.BLACK);
-        Text exitText = new Text(555, 790, "EXIT");
-        exitText.setFill(Color.WHITE);
-        
-        // Create car
-        car = new Circle(580, 65, VEHICLE_SIZE, Color.BLUE);
-        car.setStroke(Color.BLACK);
-        
-        parkingLotPane.getChildren().addAll(entrance, entranceText, exit, exitText, car);
-        
-        // Create parking bays and lanes
-        createParkingBays();
-    }
-    
-    private void createParkingBays() {
-        // Main vertical lane (center)
-        Rectangle centerLane = new Rectangle(580, 150, MAIN_LANE_WIDTH, 620);
-        centerLane.setFill(Color.GRAY);
-        centerLane.setStroke(Color.WHITE);
-        
-        // Left and right parking bays
-        for (int row = 0; row < 8; row++) {
-            double y = 150 + (row * (SPOT_HEIGHT + LANE_WIDTH));
-            
-            // Left side parking bay
-            createParkingBay(100, y, row, false);
-            
-            // Right side parking bay
-            createParkingBay(580 + MAIN_LANE_WIDTH, y, row, true);
-            
-            // Horizontal driving lane
-            Rectangle lane = new Rectangle(100, y + SPOT_HEIGHT, PARKING_BAY_WIDTH * 2 + MAIN_LANE_WIDTH, LANE_WIDTH);
-            lane.setFill(Color.GRAY);
-            lane.setStroke(Color.WHITE);
-            parkingLotPane.getChildren().add(lane);
-        }
-        
-        parkingLotPane.getChildren().add(centerLane);
-    }
-    
-    private void createParkingBay(double startX, double startY, int row, boolean rightSide) {
-        Distance distance;
-        if (row < 2) distance = Distance.CLOSE;
-        else if (row < 5) distance = Distance.MEDIUM;
-        else distance = Distance.FAR;
-        
-        for (int col = 0; col < 6; col++) {
-            double x = rightSide ? startX + col * (SPOT_WIDTH + 10) : startX + (5 - col) * (SPOT_WIDTH + 10);
-            Rectangle spot = new Rectangle(x, startY, SPOT_WIDTH, SPOT_HEIGHT);
-            spot.setFill(distance.color);
-            spot.setStroke(Color.BLACK);
-            
-            ParkingSpot parkingSpot = new ParkingSpot(spot, row, col, distance);
-            parkingSpots.add(parkingSpot);
-            
-            Text spotNumber = new Text(x + 5, startY + 20, String.format("%d", parkingSpots.size()));
-            spotNumber.setFill(Color.BLACK);
-            
-            spot.setOnMouseClicked(e -> toggleSpotOccupancy(parkingSpot));
-            
-            parkingLotPane.getChildren().addAll(spot, spotNumber);
-        }
-    }
-    
-    private void toggleSpotOccupancy(ParkingSpot spot) {
-        spot.isOccupied = !spot.isOccupied;
-        FillTransition ft = new FillTransition(
-            Duration.millis(300),
-            spot.rect,
-            spot.isOccupied ? spot.distance.color : Color.RED,
-            spot.isOccupied ? Color.RED : spot.distance.color
+        controls.getChildren().addAll(
+            new Label("Select Image:"), imageSelection,
+            processButton
         );
-        ft.play();
-    }
-    
-    private void simulatePathfinding() {
-        ParkingSpot targetSpot = findNearestAvailableSpot();
         
-        if (targetSpot != null) {
-            car.toFront();
-            
-            Path path = new Path();
-            path.getElements().add(new MoveTo(580, 65)); // Start at entrance
-            
-            // Move down main lane to target row
-            double laneY = targetSpot.rect.getY() + SPOT_HEIGHT + LANE_WIDTH/2;
-            path.getElements().add(new LineTo(580, laneY));
-            
-            // Move horizontally to parking bay
-            double turnX = targetSpot.col < 6 ? 480 : 680; // Left or right bay
-            path.getElements().add(new LineTo(turnX, laneY));
-            
-            // Move into parking spot
-            path.getElements().add(new LineTo(
-                targetSpot.rect.getX() + SPOT_WIDTH/2,
-                targetSpot.rect.getY() + SPOT_HEIGHT/2
-            ));
-            
-            PathTransition pathTransition = new PathTransition();
-            pathTransition.setDuration(Duration.seconds(3));
-            pathTransition.setPath(path);
-            pathTransition.setNode(car);
-            
-            pathTransition.setOnFinished(e -> {
-                car.toFront();
-                FillTransition ft = new FillTransition(
-                    Duration.millis(500),
-                    targetSpot.rect,
-                    targetSpot.distance.color,
-                    Color.GREEN
-                );
-                ft.setCycleCount(6);
-                ft.setAutoReverse(true);
-                ft.play();
-            });
-            
-            pathTransition.play();
+        return controls;
+    }
+
+    private GridPane createBottomControls() {
+        GridPane grid = new GridPane();
+        grid.setPadding(new Insets(10));
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setAlignment(Pos.CENTER);
+        
+        // Selection buttons column
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.SOMETIMES);
+        grid.getColumnConstraints().add(col1);
+        
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.SOMETIMES);
+        grid.getColumnConstraints().add(col2);
+        
+        // Row 1: Selection buttons
+        selectEntranceBtn = new Button("Select Entrance");
+        selectEntranceBtn.setStyle("-fx-base: #4CAF50;");
+        selectEntranceBtn.setDisable(true);
+        selectEntranceBtn.setOnAction(e -> {
+            currentSelectionMode = "ENTRANCE";
+            statusLabel.setText("Click on the image to select ENTRANCE point");
+            selectEntranceBtn.setDisable(true);
+            selectExitBtn.setDisable(false);
+        });
+        
+        selectExitBtn = new Button("Select Exit");
+        selectExitBtn.setStyle("-fx-base: #F44336;");
+        selectExitBtn.setDisable(true);
+        selectExitBtn.setOnAction(e -> {
+            currentSelectionMode = "EXIT";
+            statusLabel.setText("Click on the image to select EXIT point");
+            selectExitBtn.setDisable(true);
+            selectEntranceBtn.setDisable(false);
+        });
+        
+        grid.add(selectEntranceBtn, 0, 0);
+        grid.add(selectExitBtn, 1, 0);
+        
+        // Row 2: Pathfinding button
+        findPathButton = new Button("Find Path to Parking Spot");
+        findPathButton.setStyle("-fx-base: #2196F3;");
+        findPathButton.setDisable(true);
+        findPathButton.setOnAction(e -> findPathToParkingSpot());
+        grid.add(findPathButton, 0, 1, 2, 1);
+        
+        // Row 3: Reset button
+        resetButton = new Button("Reset Selections");
+        resetButton.setOnAction(e -> resetSelection());
+        grid.add(resetButton, 0, 2, 2, 1);
+        
+        return grid;
+    }
+
+    private void loadImage(int index) {
+        try {
+            String imagePath = "data/image_" + index + ".jpg";
+            originalImage = new Image(new File(imagePath).toURI().toString());
+            imageView.setImage(originalImage);
+            resetSelection();
+        } catch (Exception e) {
+            showAlert("Error", "Could not load image: " + e.getMessage());
         }
     }
-    
-    private ParkingSpot findNearestAvailableSpot() {
-        return parkingSpots.stream()
-            .filter(spot -> !spot.isOccupied)
-            .min(Comparator.comparingInt(spot -> spot.row))
+
+    private void processCurrentImage() {
+        try {
+            GreyImageProcessor.processImage("data/image_" + currentImageIndex + ".jpg", currentImageIndex);
+            
+            processedImage = new Image(new File("output/image_" + currentImageIndex + "_filtered.png").toURI().toString());
+            imageView.setImage(processedImage);
+            
+            ImageProcessor imageProcessor = new ImageProcessor();
+            BufferedImage bufferedImage = ImageIO.read(new File("data/image_" + currentImageIndex + ".jpg"));
+            graph = imageProcessor.processImage(bufferedImage);
+            nodes = graph.getNodes();
+            
+            parkingSpots = nodes.stream()
+                .filter(Node::isParkingSpot)
+                .collect(Collectors.toList());
+            
+            dijkstra = new Dijkstra(graph.createGrid(bufferedImage.getHeight(), bufferedImage.getWidth()));
+            aStar = new A_Star_Classication();
+            
+            selectEntranceBtn.setDisable(false);
+            selectExitBtn.setDisable(true);
+            statusLabel.setText("Image processed. Click 'Select Entrance' to begin");
+            
+        } catch (Exception e) {
+            showAlert("Processing Error", "Could not process image: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void handleImageClick(MouseEvent event) {
+        if (processedImage == null || currentSelectionMode.equals("NONE")) {
+            showAlert("Error", "Please select an action first");
+            return;
+        }
+        
+        double x = event.getX();
+        double y = event.getY();
+        
+        Node clickedNode = findNearestNode(x, y);
+        
+        if (clickedNode == null) {
+            showAlert("Selection Error", "No valid node found at this location");
+            return;
+        }
+        
+        if (currentSelectionMode.equals("ENTRANCE")) {
+            if (!clickedNode.isEntrance()) {
+                showAlert("Selection Error", "Please select a valid entrance point (green area)");
+                return;
+            }
+            selectedEntrance = clickedNode;
+            entranceMarker.setCenterX(x);
+            entranceMarker.setCenterY(y);
+            entranceMarker.setVisible(true);
+            statusLabel.setText("Entrance selected. Now please select EXIT point");
+            currentSelectionMode = "EXIT";
+            selectExitBtn.setDisable(false);
+        } 
+        else if (currentSelectionMode.equals("EXIT")) {
+            if (!clickedNode.isExit()) {
+                showAlert("Selection Error", "Please select a valid exit point (red area)");
+                return;
+            }
+            selectedExit = clickedNode;
+            exitMarker.setCenterX(x);
+            exitMarker.setCenterY(y);
+            exitMarker.setVisible(true);
+            statusLabel.setText("Both entrance and exit selected. Click 'Find Path' to continue");
+            currentSelectionMode = "NONE";
+            findPathButton.setDisable(false);
+        }
+    }
+
+    private Node findNearestNode(double x, double y) {
+        if (nodes == null || nodes.isEmpty()) return null;
+        
+        double scaleX = originalImage.getWidth() / imageView.getBoundsInParent().getWidth();
+        double scaleY = originalImage.getHeight() / imageView.getBoundsInParent().getHeight();
+        
+        double scaledX = x * scaleX;
+        double scaledY = y * scaleY;
+        
+        return nodes.stream()
+            .min(Comparator.comparingDouble(node -> 
+                Math.sqrt(Math.pow(node.getX() - scaledX, 2) + Math.pow(node.getY() - scaledY, 2)))
+            )
             .orElse(null);
     }
-    
-    private void resetParkingLot() {
-        createParkingLot();
+
+    private void findPathToParkingSpot() {
+        if (selectedEntrance == null || selectedExit == null) {
+            showAlert("Error", "Please select both entrance and exit points");
+            return;
+        }
+        
+        dijkstra.Compute();
+        Node targetParkingSpot = dijkstra.getClosestParking();
+        
+        if (targetParkingSpot == null) {
+            showAlert("No Parking", "No available parking spots found");
+            return;
+        }
+        
+        List<Node> path = aStar.findPathToNearestExit(selectedEntrance, Collections.singletonList(targetParkingSpot));
+        
+        if (path.isEmpty()) {
+            showAlert("Path Error", "Could not find a path to the parking spot");
+            return;
+        }
+        
+        visualizePath(path);
+    }
+
+    private void visualizePath(List<Node> path) {
+        currentPath.getElements().clear();
+        
+        PathElement firstMove = new MoveTo(
+            scaleXToView(path.get(0).getX()),
+            scaleYToView(path.get(0).getY())
+        );
+        currentPath.getElements().add(firstMove);
+        
+        for (int i = 1; i < path.size(); i++) {
+            PathElement line = new LineTo(
+                scaleXToView(path.get(i).getX()),
+                scaleYToView(path.get(i).getY())
+            );
+            currentPath.getElements().add(line);
+        }
+        
+        PathTransition pathTransition = new PathTransition();
+        pathTransition.setDuration(Duration.seconds(3));
+        pathTransition.setPath(currentPath);
+        
+        Circle pathIndicator = new Circle(5, Color.BLUE);
+        overlayPane.getChildren().add(pathIndicator);
+        pathTransition.setNode(pathIndicator);
+        pathTransition.play();
+    }
+
+    private double scaleXToView(double x) {
+        return x * (imageView.getBoundsInParent().getWidth() / originalImage.getWidth());
+    }
+
+    private double scaleYToView(double y) {
+        return y * (imageView.getBoundsInParent().getHeight() / originalImage.getHeight());
+    }
+
+    private void resetSelection() {
+        selectedEntrance = null;
+        selectedExit = null;
+        entranceMarker.setVisible(false);
+        exitMarker.setVisible(false);
+        currentPath.getElements().clear();
+        findPathButton.setDisable(true);
+        
+        if (processedImage != null) {
+            selectEntranceBtn.setDisable(false);
+            selectExitBtn.setDisable(true);
+            statusLabel.setText("Selections reset. Click 'Select Entrance' to begin");
+            currentSelectionMode = "NONE";
+        } else {
+            statusLabel.setText("Please process an image first");
+        }
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     public static void main(String[] args) {
