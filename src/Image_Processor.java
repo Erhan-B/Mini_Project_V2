@@ -57,45 +57,106 @@
 		 * @param metaFilePath The path to the image that contains metadata
 		 * @param i
 		 */
+//		public void processImage(String imageFilePath, String metaFilePath, int i) {
+//			try {
+//				//Read the two image files
+//				BufferedImage colour = ImageIO.read(new File(imageFilePath));
+//				BufferedImage metaImage = ImageIO.read(new File(metaFilePath));
+//				
+//				//Scan through the images to find the entrances,parking spots, and exits and store them
+//				findSection(metaImage, 0, 255, 0); //Entrance (Green)
+//				findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
+//				findSection(metaImage, 255, 0, 0); //Exits (Red)
+//				
+//				//Generate a greyscale image
+//				BufferedImage grey = greyScale(colour, i);
+//				
+//				//Detect edges on the greyscale image and create an image containing those edges
+//				BufferedImage edge =  edges(grey, 30, i);
+//				
+//				//Filter out extra noise in image
+//	//			BufferedImage filtered = medianFilter(edge, i);
+//				
+//				//Create a grid based on the detected edges
+//				int scale = 5;
+//				int blockSize = 10;
+//				double edgePercentage = 0.005;
+//				int entranceX = entranceCoord.getKey();
+//				int entranceY = entranceCoord.getValue();
+//				grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
+//				
+//				//Create a visual representation of the Node[][] grid
+//			    BufferedImage visual = visualizeGrid(grid, scale);
+//			    File outputfile = new File("output/grid_result_" + i + ".png");
+//			    ImageIO.write(visual, "png", outputfile);
+//			    
+//			} catch (FileNotFoundException fnf) {
+//				System.err.println("Image Processor: File not found");
+//				fnf.printStackTrace();
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
+//		}
+		
 		public void processImage(String imageFilePath, String metaFilePath, int i) {
-			try {
-				//Read the two image files
-				BufferedImage colour = ImageIO.read(new File(imageFilePath));
-				BufferedImage metaImage = ImageIO.read(new File(metaFilePath));
-				
-				//Scan through the images to find the entrances,parking spots, and exits and store them
-				findSection(metaImage, 0, 255, 0); //Entrance (Green)
-				findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
-				findSection(metaImage, 255, 0, 0); //Exits (Red)
-				
-				//Generate a greyscale image
-				BufferedImage grey = greyScale(colour, i);
-				
-				//Detect edges on the greyscale image and create an image containing those edges
-				BufferedImage edge =  edges(grey, 30, i);
-				
-				//Filter out extra noise in image
-	//			BufferedImage filtered = medianFilter(edge, i);
-				
-				//Create a grid based on the detected edges
-				int scale = 5;
-				int blockSize = 10;
-				double edgePercentage = 0.005;
-				int entranceX = entranceCoord.getKey();
-				int entranceY = entranceCoord.getValue();
-				grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
-				
-				//Create a visual representation of the Node[][] grid
-			    BufferedImage visual = visualizeGrid(grid, scale);
-			    File outputfile = new File("output/grid_result_" + i + ".png");
-			    ImageIO.write(visual, "png", outputfile);
-			    
-			} catch (FileNotFoundException fnf) {
-				System.err.println("Image Processor: File not found");
-				fnf.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		    try {
+		        // Check if files exist first
+		        File imageFile = new File(imageFilePath);
+		        File metaFile = new File(metaFilePath);
+		        
+		        if (!imageFile.exists()) {
+		            throw new FileNotFoundException("Image file not found: " + imageFilePath);
+		        }
+		        if (!metaFile.exists()) {
+		            throw new FileNotFoundException("Metadata file not found: " + metaFilePath);
+		        }
+
+		        // Create output directory if it doesn't exist
+		        new File("output").mkdirs();
+
+		        //Read the two image files
+		        BufferedImage colour = ImageIO.read(imageFile);
+		        BufferedImage metaImage = ImageIO.read(metaFile);
+		        
+		        //Scan through the images to find the entrances,parking spots, and exits and store them
+		        findSection(metaImage, 0, 255, 0); //Entrance (Green)
+		        findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
+		        findSection(metaImage, 255, 0, 0); //Exits (Red)
+		        
+		        //Generate a greyscale image
+		        BufferedImage grey = greyScale(colour, i);
+		        
+		        //Detect edges on the greyscale image and create an image containing those edges
+		        BufferedImage edge = edges(grey, 30, i);
+		        
+		        //Create a grid based on the detected edges
+		        int scale = 5;
+		        int blockSize = 10;
+		        double edgePercentage = 0.005;
+		        int entranceX = entranceCoord.getKey();
+		        int entranceY = entranceCoord.getValue();
+		        grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
+		        
+		        if (grid == null) {
+		            throw new Exception("Grid creation failed");
+		        }
+		        
+		        //Create a visual representation of the Node[][] grid
+		        BufferedImage visual = visualizeGrid(grid, scale);
+		        File outputfile = new File("output/grid_result_" + i + ".png");
+		        ImageIO.write(visual, "png", outputfile);
+		        
+		    } catch (FileNotFoundException fnf) {
+		        System.err.println("Image Processor: File not found: " + fnf.getMessage());
+		        throw new RuntimeException(fnf);
+		    } catch (IOException e) {
+		        System.err.println("Image Processor: IO Error: " + e.getMessage());
+		        throw new RuntimeException(e);
+		    } catch (Exception e) {
+		        System.err.println("Image Processor: Error: " + e.getMessage());
+		        throw new RuntimeException(e);
+		    }
 		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
 		}
 		

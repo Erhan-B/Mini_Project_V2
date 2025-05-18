@@ -49,6 +49,7 @@ public class GUI extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+    	try {
         initializeComponents();
         
         BorderPane root = new BorderPane();
@@ -83,6 +84,11 @@ public class GUI extends Application {
         primaryStage.setTitle("Parking Lot Optimizer");
         primaryStage.setScene(scene);
         primaryStage.show();
+        
+    	} catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Initialization Error", "Failed to initialize application: " + e.getMessage());
+        }
     }
 
     private VBox createInfoPanel() {
@@ -121,6 +127,15 @@ public class GUI extends Application {
         currentPath.setStroke(Color.BLUE);
         currentPath.setStrokeWidth(3);
         
+     // Initialize status label
+        statusLabel = new Label("Please process an image first");
+        statusLabel.setStyle("-fx-font-size: 14; -fx-text-fill: white; -fx-background-color: #333; -fx-padding: 10;");
+        statusLabel.setMaxWidth(Double.MAX_VALUE);
+        
+     // Initialize buttons here
+        selectEntranceBtn = new Button("Select Entrance");
+        selectExitBtn = new Button("Select Exit");
+        
         overlayPane.getChildren().addAll(entranceMarker, exitMarker, currentPath);
         imageView.setOnMouseClicked(this::handleImageClick);
     }
@@ -131,12 +146,12 @@ public class GUI extends Application {
         controls.setAlignment(Pos.CENTER);
         
         imageSelection = new ComboBox<>();
-        for (int i = 1; i <= 6; i++) {
+        for (int i = 0; i <= 6; i++) {
             imageSelection.getItems().add("Image " + i);
         }
         imageSelection.getSelectionModel().selectFirst();
         imageSelection.setOnAction(e -> {
-            currentImageIndex = imageSelection.getSelectionModel().getSelectedIndex() + 1;
+            currentImageIndex = imageSelection.getSelectionModel().getSelectedIndex();
             loadImage(currentImageIndex);
         });
         
@@ -151,6 +166,77 @@ public class GUI extends Application {
         return controls;
     }
 
+//    private GridPane createBottomControls() {
+//        GridPane grid = new GridPane();
+//        grid.setPadding(new Insets(10));
+//        grid.setHgap(10);
+//        grid.setVgap(10);
+//        grid.setAlignment(Pos.CENTER);
+//        
+//        ColumnConstraints col1 = new ColumnConstraints();
+//        col1.setHgrow(Priority.SOMETIMES);
+//        grid.getColumnConstraints().add(col1);
+//        
+//        ColumnConstraints col2 = new ColumnConstraints();
+//        col2.setHgrow(Priority.SOMETIMES);
+//        grid.getColumnConstraints().add(col2);
+//        
+//        // Row 1: Selection buttons
+////        selectEntranceBtn = new Button("Select Entrance");
+////        selectEntranceBtn.setStyle("-fx-base: #4CAF50;");
+////        selectEntranceBtn.setDisable(true);
+////        selectEntranceBtn.setOnAction(e -> {
+////            currentSelectionMode = "ENTRANCE";
+////            statusLabel.setText("Click on the image to select ENTRANCE point");
+////            selectEntranceBtn.setDisable(true);
+////            selectExitBtn.setDisable(false);
+////        });
+////        
+////        selectExitBtn = new Button("Select Exit");
+////        selectExitBtn.setStyle("-fx-base: #F44336;");
+////        selectExitBtn.setDisable(true);
+////        selectExitBtn.setOnAction(e -> {
+////            currentSelectionMode = "EXIT";
+////            statusLabel.setText("Click on the image to select EXIT point");
+////            selectExitBtn.setDisable(true);
+////            selectEntranceBtn.setDisable(false);
+////        });
+//        
+//        selectEntranceBtn.setOnAction(e -> {
+//            currentSelectionMode = "ENTRANCE";
+//            statusLabel.setText("Click on a highlighted green area to select ENTRANCE point");
+//            selectEntranceBtn.setDisable(true);
+//            selectExitBtn.setDisable(false);
+//            highlightEntranceAreas(); // Show entrance highlights
+//        });
+//
+//        selectExitBtn.setOnAction(e -> {
+//            currentSelectionMode = "EXIT";
+//            statusLabel.setText("Click on a highlighted red area to select EXIT point");
+//            selectExitBtn.setDisable(true);
+//            selectEntranceBtn.setDisable(false);
+//            highlightExitAreas(); // Show exit highlights
+//        });
+//        
+//        grid.add(selectEntranceBtn, 0, 0);
+//        grid.add(selectExitBtn, 1, 0);
+//        
+//        // Row 2: Pathfinding button
+//        findPathButton = new Button("Find Path to Parking Spot");
+//        findPathButton.setStyle("-fx-base: #2196F3;");
+//        findPathButton.setDisable(true);
+//        findPathButton.setOnAction(e -> findPathToParkingSpot());
+//        grid.add(findPathButton, 0, 1, 2, 1);
+//        
+//        // Row 3: Reset button
+//        resetButton = new Button("Reset Selections");
+//        resetButton.setOnAction(e -> resetSelection());
+//        grid.add(resetButton, 0, 2, 2, 1);
+//        
+//        return grid;
+//    }
+
+    
     private GridPane createBottomControls() {
         GridPane grid = new GridPane();
         grid.setPadding(new Insets(10));
@@ -166,48 +252,64 @@ public class GUI extends Application {
         col2.setHgrow(Priority.SOMETIMES);
         grid.getColumnConstraints().add(col2);
         
-        // Row 1: Selection buttons
-        selectEntranceBtn = new Button("Select Entrance");
+        // Configure buttons that were already created in initializeComponents()
         selectEntranceBtn.setStyle("-fx-base: #4CAF50;");
         selectEntranceBtn.setDisable(true);
         selectEntranceBtn.setOnAction(e -> {
             currentSelectionMode = "ENTRANCE";
-            statusLabel.setText("Click on the image to select ENTRANCE point");
+            statusLabel.setText("Click on a highlighted green area to select ENTRANCE point");
             selectEntranceBtn.setDisable(true);
             selectExitBtn.setDisable(false);
+            highlightEntranceAreas();
         });
         
-        selectExitBtn = new Button("Select Exit");
         selectExitBtn.setStyle("-fx-base: #F44336;");
         selectExitBtn.setDisable(true);
         selectExitBtn.setOnAction(e -> {
             currentSelectionMode = "EXIT";
-            statusLabel.setText("Click on the image to select EXIT point");
+            statusLabel.setText("Click on a highlighted red area to select EXIT point");
             selectExitBtn.setDisable(true);
             selectEntranceBtn.setDisable(false);
+            highlightExitAreas();
         });
         
         grid.add(selectEntranceBtn, 0, 0);
         grid.add(selectExitBtn, 1, 0);
         
-        // Row 2: Pathfinding button
         findPathButton = new Button("Find Path to Parking Spot");
         findPathButton.setStyle("-fx-base: #2196F3;");
         findPathButton.setDisable(true);
         findPathButton.setOnAction(e -> findPathToParkingSpot());
         grid.add(findPathButton, 0, 1, 2, 1);
         
-        // Row 3: Reset button
         resetButton = new Button("Reset Selections");
         resetButton.setOnAction(e -> resetSelection());
         grid.add(resetButton, 0, 2, 2, 1);
         
         return grid;
     }
-
+//    private void loadImage(int index) {
+//        try {
+//            String imagePath = "data/image_" + index + ".jpg";
+//            originalImage = new Image(new File(imagePath).toURI().toString());
+//            imageView.setImage(originalImage);
+//            resetSelection();
+//        } catch (Exception e) {
+//            showAlert("Error", "Could not load image: " + e.getMessage());
+//        }
+//    }
+    
     private void loadImage(int index) {
         try {
             String imagePath = "data/image_" + index + ".jpg";
+            String metaPath = "data/image_" + index + "_meta.jpg";
+            
+            // Check if files exist
+            if (!new File(imagePath).exists() || !new File(metaPath).exists()) {
+                showAlert("Error", "Required image files not found. Please ensure both image_" + index + ".jpg and image_" + index + "_meta.jpg exist in the data directory.");
+                return;
+            }
+            
             originalImage = new Image(new File(imagePath).toURI().toString());
             imageView.setImage(originalImage);
             resetSelection();
@@ -216,42 +318,90 @@ public class GUI extends Application {
         }
     }
 
+//    private void processCurrentImage() {
+//        try {
+//            // Process the image using Image_Processor
+//            imageProcessor = new Image_Processor();
+//            imageProcessor.processImage("data/image_" + currentImageIndex + ".jpg", 
+//                                      "data/image_" + currentImageIndex + "_meta.png", 
+//                                      currentImageIndex);
+//            
+//            // Load processed image for display
+//            processedImage = new Image(new File("output/grid_result_" + currentImageIndex + ".png").toURI().toString());
+//            imageView.setImage(processedImage);
+//            
+//            // Get the graph data - add null checks
+//            grid = imageProcessor.getGrid();
+//            if (grid == null) {
+//                throw new Exception("Grid initialization failed");
+//            }
+//            
+//            nodes = imageProcessor.getNodes();
+//            if (nodes == null) {
+//                throw new Exception("Node list initialization failed");
+//            }
+//            
+//            parkingSpots = nodes.stream()
+//                .filter(Node::isParkingSpot)
+//                .collect(Collectors.toList());
+//            
+//            exits = imageProcessor.getExitList();
+//            if (exits == null || exits.isEmpty()) {
+//                throw new Exception("No exits found in the image");
+//            }
+//            
+//            // Initialize pathfinding algorithms with proper error handling
+//            if (imageProcessor.getEntrance() == null) {
+//                throw new Exception("No entrance found in the image");
+//            }
+//            
+//            dijkstra = new Dijkstra(grid, imageProcessor.getEntrance());
+//            aStar = new A_Star_Classification();
+//            
+//            selectEntranceBtn.setDisable(false);
+//            selectExitBtn.setDisable(true);
+//            statusLabel.setText("Image processed. Click 'Select Entrance' to begin");
+//            
+//        } catch (Exception e) {
+//            showAlert("Processing Error", "Could not process image: " + e.getMessage());
+//            e.printStackTrace();
+//            resetSelection(); // Reset UI state on failure
+//        }
+//    }
+    
     private void processCurrentImage() {
         try {
-            // Process the image using Image_Processor
             imageProcessor = new Image_Processor();
             imageProcessor.processImage("data/image_" + currentImageIndex + ".jpg", 
-                                      "data/image_" + currentImageIndex + "_meta.png", 
+                                      "data/image_" + currentImageIndex + "_meta.jpg", 
                                       currentImageIndex);
             
-            // Load processed image for display
+            // Load processed image
             processedImage = new Image(new File("output/grid_result_" + currentImageIndex + ".png").toURI().toString());
             imageView.setImage(processedImage);
             
-            // Get the graph data - add null checks
+            // Get graph data
             grid = imageProcessor.getGrid();
-            if (grid == null) {
-                throw new Exception("Grid initialization failed");
-            }
+            if (grid == null) throw new Exception("Grid initialization failed");
             
             nodes = imageProcessor.getNodes();
-            if (nodes == null) {
-                throw new Exception("Node list initialization failed");
-            }
+            if (nodes == null || nodes.isEmpty()) throw new Exception("No nodes found");
+            
+            // Debug print node positions
+            System.out.println("Entrance nodes:");
+            nodes.stream().filter(Node::isEntrance).forEach(n -> 
+                System.out.println("  at (" + n.getX() + "," + n.getY() + ")"));
+            
+            System.out.println("Exit nodes:");
+            nodes.stream().filter(Node::isExit).forEach(n -> 
+                System.out.println("  at (" + n.getX() + "," + n.getY() + ")"));
             
             parkingSpots = nodes.stream()
                 .filter(Node::isParkingSpot)
                 .collect(Collectors.toList());
             
             exits = imageProcessor.getExitList();
-            if (exits == null || exits.isEmpty()) {
-                throw new Exception("No exits found in the image");
-            }
-            
-            // Initialize pathfinding algorithms with proper error handling
-            if (imageProcessor.getEntrance() == null) {
-                throw new Exception("No entrance found in the image");
-            }
+            if (exits == null || exits.isEmpty()) throw new Exception("No exits found");
             
             dijkstra = new Dijkstra(grid, imageProcessor.getEntrance());
             aStar = new A_Star_Classification();
@@ -263,10 +413,96 @@ public class GUI extends Application {
         } catch (Exception e) {
             showAlert("Processing Error", "Could not process image: " + e.getMessage());
             e.printStackTrace();
-            resetSelection(); // Reset UI state on failure
+            resetSelection();
+        }
+    }
+    
+    private void highlightEntranceAreas() {
+        // Clear existing highlights
+        overlayPane.getChildren().removeIf(node -> node instanceof Rectangle);
+        
+        if (nodes == null) return;
+        
+        for (Node node : nodes) {
+            if (node.isEntrance()) {
+                // Scale the node coordinates to view coordinates
+                double x = scaleXToView(node.getX());
+                double y = scaleYToView(node.getY());
+                
+                Rectangle highlight = new Rectangle(x - 15, y - 15, 30, 30);
+                highlight.setFill(Color.GREEN.deriveColor(0, 1, 1, 0.3));
+                highlight.setStroke(Color.GREEN);
+                highlight.setStrokeWidth(2);
+                overlayPane.getChildren().add(highlight);
+            }
         }
     }
 
+    private void highlightExitAreas() {
+        // Clear existing highlights
+        overlayPane.getChildren().removeIf(node -> node instanceof Rectangle);
+        
+        if (nodes == null) return;
+        
+        for (Node node : nodes) {
+            if (node.isExit()) {
+                // Scale the node coordinates to view coordinates
+                double x = scaleXToView(node.getX());
+                double y = scaleYToView(node.getY());
+                
+                Rectangle highlight = new Rectangle(x - 15, y - 15, 30, 30);
+                highlight.setFill(Color.RED.deriveColor(0, 1, 1, 0.3));
+                highlight.setStroke(Color.RED);
+                highlight.setStrokeWidth(2);
+                overlayPane.getChildren().add(highlight);
+            }
+        }
+    }
+
+//    private void handleImageClick(MouseEvent event) {
+//        if (processedImage == null || currentSelectionMode.equals("NONE")) {
+//            showAlert("Error", "Please select an action first");
+//            return;
+//        }
+//        
+//        double x = event.getX();
+//        double y = event.getY();
+//        
+//        Node clickedNode = findNearestNode(x, y);
+//        
+//        if (clickedNode == null) {
+//            showAlert("Selection Error", "No valid node found at this location");
+//            return;
+//        }
+//        
+//        if (currentSelectionMode.equals("ENTRANCE")) {
+//            if (!clickedNode.isEntrance()) {
+//                showAlert("Selection Error", "Please select a valid entrance point (green area)");
+//                return;
+//            }
+//            selectedEntrance = clickedNode;
+//            entranceMarker.setCenterX(x);
+//            entranceMarker.setCenterY(y);
+//            entranceMarker.setVisible(true);
+//            statusLabel.setText("Entrance selected. Now please select EXIT point");
+//            currentSelectionMode = "EXIT";
+//            selectExitBtn.setDisable(false);
+//        } 
+//        else if (currentSelectionMode.equals("EXIT")) {
+//            if (!clickedNode.isExit()) {
+//                showAlert("Selection Error", "Please select a valid exit point (red area)");
+//                return;
+//            }
+//            selectedExit = clickedNode;
+//            exitMarker.setCenterX(x);
+//            exitMarker.setCenterY(y);
+//            exitMarker.setVisible(true);
+//            statusLabel.setText("Both entrance and exit selected. Click 'Find Path' to continue");
+//            currentSelectionMode = "NONE";
+//            findPathButton.setDisable(false);
+//        }
+//    }
+    
     private void handleImageClick(MouseEvent event) {
         if (processedImage == null || currentSelectionMode.equals("NONE")) {
             showAlert("Error", "Please select an action first");
@@ -276,16 +512,23 @@ public class GUI extends Application {
         double x = event.getX();
         double y = event.getY();
         
+        System.out.println("Clicked at view coordinates: (" + x + "," + y + ")");
+        
         Node clickedNode = findNearestNode(x, y);
         
         if (clickedNode == null) {
+            System.out.println("No node found near click location");
             showAlert("Selection Error", "No valid node found at this location");
             return;
         }
         
+        System.out.println("Selected node at: (" + clickedNode.getX() + "," + clickedNode.getY() + ")");
+        
         if (currentSelectionMode.equals("ENTRANCE")) {
             if (!clickedNode.isEntrance()) {
-                showAlert("Selection Error", "Please select a valid entrance point (green area)");
+                highlightEntranceAreas(); // Re-highlight entrances to help user
+                showAlert("Selection Error", 
+                    "Please click on one of the highlighted green areas to select the entrance");
                 return;
             }
             selectedEntrance = clickedNode;
@@ -295,10 +538,13 @@ public class GUI extends Application {
             statusLabel.setText("Entrance selected. Now please select EXIT point");
             currentSelectionMode = "EXIT";
             selectExitBtn.setDisable(false);
+            highlightExitAreas(); // Now show exit highlights
         } 
         else if (currentSelectionMode.equals("EXIT")) {
             if (!clickedNode.isExit()) {
-                showAlert("Selection Error", "Please select a valid exit point (red area)");
+                highlightExitAreas(); // Re-highlight exits to help user
+                showAlert("Selection Error", 
+                    "Please click on one of the highlighted red areas to select the exit");
                 return;
             }
             selectedExit = clickedNode;
@@ -308,22 +554,35 @@ public class GUI extends Application {
             statusLabel.setText("Both entrance and exit selected. Click 'Find Path' to continue");
             currentSelectionMode = "NONE";
             findPathButton.setDisable(false);
+            // Clear highlights when done
+            overlayPane.getChildren().removeIf(node -> node instanceof Rectangle);
         }
     }
 
     private Node findNearestNode(double x, double y) {
         if (nodes == null || nodes.isEmpty()) return null;
         
-        double scaleX = originalImage.getWidth() / imageView.getBoundsInParent().getWidth();
-        double scaleY = originalImage.getHeight() / imageView.getBoundsInParent().getHeight();
+        // Convert view coordinates back to image coordinates
+        double imageX = x * (originalImage.getWidth() / imageView.getBoundsInParent().getWidth());
+        double imageY = y * (originalImage.getHeight() / imageView.getBoundsInParent().getHeight());
         
-        double scaledX = x * scaleX;
-        double scaledY = y * scaleY;
+        // Find nodes of the type we're looking for
+        List<Node> targetNodes = currentSelectionMode.equals("ENTRANCE") ? 
+            nodes.stream().filter(Node::isEntrance).collect(Collectors.toList()) :
+            currentSelectionMode.equals("EXIT") ? 
+            nodes.stream().filter(Node::isExit).collect(Collectors.toList()) :
+            nodes;
         
-        return nodes.stream()
+        if (targetNodes.isEmpty()) return null;
+        
+        // Find the closest node within a reasonable distance
+        return targetNodes.stream()
             .min(Comparator.comparingDouble(node -> 
-                Math.sqrt(Math.pow(node.getX() - scaledX, 2) + Math.pow(node.getY() - scaledY, 2))
-            ))
+                Math.sqrt(Math.pow(node.getX() - imageX, 2) + Math.pow(node.getY() - imageY, 2))))
+            .filter(node -> {
+                double distance = Math.sqrt(Math.pow(node.getX() - imageX, 2) + Math.pow(node.getY() - imageY, 2));
+                return distance < 30; // Max distance in image coordinates
+            })
             .orElse(null);
     }
 
@@ -401,13 +660,39 @@ public class GUI extends Application {
     }
 
     private double scaleXToView(double x) {
+        if (originalImage == null) return x;
         return x * (imageView.getBoundsInParent().getWidth() / originalImage.getWidth());
     }
 
     private double scaleYToView(double y) {
+        if (originalImage == null) return y;
         return y * (imageView.getBoundsInParent().getHeight() / originalImage.getHeight());
     }
 
+//    private void resetSelection() {
+//        selectedEntrance = null;
+//        selectedExit = null;
+//        targetParkingSpot = null;
+//        entranceMarker.setVisible(false);
+//        exitMarker.setVisible(false);
+//        currentPath.getElements().clear();
+//        findPathButton.setDisable(true);
+//        imageView.setImage(originalImage);
+//        overlayPane.getChildren().removeIf(node -> node instanceof Circle && node != entranceMarker && node != exitMarker);
+//        
+//        classificationLabel.setText("Classification: Not selected");
+//        distanceLabel.setText("Distance to exit: -");
+//        
+//        currentSelectionMode = "NONE";
+//        if (processedImage != null) {
+//            selectEntranceBtn.setDisable(false);
+//            selectExitBtn.setDisable(true);
+//            statusLabel.setText("Image processed. Click 'Select Entrance' to begin");
+//        } else {
+//            statusLabel.setText("Please process an image first");
+//        }
+//    }
+    
     private void resetSelection() {
         selectedEntrance = null;
         selectedExit = null;
@@ -417,7 +702,11 @@ public class GUI extends Application {
         currentPath.getElements().clear();
         findPathButton.setDisable(true);
         imageView.setImage(originalImage);
-        overlayPane.getChildren().removeIf(node -> node instanceof Circle && node != entranceMarker && node != exitMarker);
+        
+        // Clear all highlights and markers except entrance/exit markers
+        overlayPane.getChildren().removeIf(node -> 
+            (node instanceof Circle && node != entranceMarker && node != exitMarker) ||
+            (node instanceof Rectangle));
         
         classificationLabel.setText("Classification: Not selected");
         distanceLabel.setText("Distance to exit: -");
