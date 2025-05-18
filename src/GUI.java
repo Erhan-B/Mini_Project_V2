@@ -22,6 +22,7 @@ public class GUI extends Application {
     private Image processedImage;
     private List<Node> nodes;
     private List<Node> parkingSpots;
+    private List<Node> exits;
     private Node selectedEntrance;
     private Node selectedExit;
     private Path currentPath;
@@ -33,13 +34,18 @@ public class GUI extends Application {
     private Button findPathButton;
     private Button resetButton;
     private int currentImageIndex = 1;
+    private Node[][] grid;
     private Dijkstra dijkstra;
     private A_Star_Classification aStar;
+    private Image_Processor imageProcessor;
 
     private Label statusLabel;
     private String currentSelectionMode = "NONE";
     private Button selectEntranceBtn;
     private Button selectExitBtn;
+    private Label classificationLabel;
+    private Label distanceLabel;
+    private Node targetParkingSpot;
 
     @Override
     public void start(Stage primaryStage) {
@@ -57,6 +63,9 @@ public class GUI extends Application {
         // Bottom controls (selection and pathfinding)
         GridPane bottomControls = createBottomControls();
         
+        // Right panel for classification and distance info
+        VBox infoPanel = createInfoPanel();
+        
         // Status bar
         statusLabel = new Label("Please process an image first");
         statusLabel.setStyle("-fx-font-size: 14; -fx-text-fill: white; -fx-background-color: #333; -fx-padding: 10;");
@@ -66,13 +75,33 @@ public class GUI extends Application {
         mainContainer.getChildren().addAll(topControls, imageContainer, bottomControls, statusLabel);
         
         root.setCenter(mainContainer);
+        root.setRight(infoPanel);
         
         loadImage(currentImageIndex);
         
-        Scene scene = new Scene(root, 1000, 850);
+        Scene scene = new Scene(root, 1200, 850);
         primaryStage.setTitle("Parking Lot Optimizer");
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private VBox createInfoPanel() {
+        VBox panel = new VBox(10);
+        panel.setPadding(new Insets(10));
+        panel.setStyle("-fx-background-color: #f0f0f0;");
+        panel.setMinWidth(200);
+        
+        Label titleLabel = new Label("Parking Spot Info");
+        titleLabel.setStyle("-fx-font-size: 16; -fx-font-weight: bold;");
+        
+        classificationLabel = new Label("Classification: Not selected");
+        classificationLabel.setStyle("-fx-font-size: 14;");
+        
+        distanceLabel = new Label("Distance to exit: -");
+        distanceLabel.setStyle("-fx-font-size: 14;");
+        
+        panel.getChildren().addAll(titleLabel, classificationLabel, distanceLabel);
+        return panel;
     }
 
     private void initializeComponents() {
@@ -129,7 +158,6 @@ public class GUI extends Application {
         grid.setVgap(10);
         grid.setAlignment(Pos.CENTER);
         
-        // Selection buttons column
         ColumnConstraints col1 = new ColumnConstraints();
         col1.setHgrow(Priority.SOMETIMES);
         grid.getColumnConstraints().add(col1);
@@ -190,21 +218,42 @@ public class GUI extends Application {
 
     private void processCurrentImage() {
         try {
-            Image_Processor.processImage("data/image_" + currentImageIndex + ".jpg", currentImageIndex);
+            // Process the image using Image_Processor
+            imageProcessor = new Image_Processor();
+            imageProcessor.processImage("data/image_" + currentImageIndex + ".jpg", 
+                                      "data/image_" + currentImageIndex + "_meta.png", 
+                                      currentImageIndex);
             
-            processedImage = new Image(new File("output/image_" + currentImageIndex + "_filtered.png").toURI().toString());
+            // Load processed image for display
+            processedImage = new Image(new File("output/grid_result_" + currentImageIndex + ".png").toURI().toString());
             imageView.setImage(processedImage);
             
-            Image_Processor imageProcessor = new Image_Processor();
-            BufferedImage bufferedImage = ImageIO.read(new File("data/image_" + currentImageIndex + ".jpg"));
-            graph = imageProcessor.processImage(bufferedImage);
-            nodes = graph.getNodes();
+            // Get the graph data - add null checks
+            grid = imageProcessor.getGrid();
+            if (grid == null) {
+                throw new Exception("Grid initialization failed");
+            }
+            
+            nodes = imageProcessor.getNodes();
+            if (nodes == null) {
+                throw new Exception("Node list initialization failed");
+            }
             
             parkingSpots = nodes.stream()
                 .filter(Node::isParkingSpot)
                 .collect(Collectors.toList());
             
-            dijkstra = new Dijkstra(graph.createGrid(bufferedImage.getHeight(), bufferedImage.getWidth()));
+            exits = imageProcessor.getExitList();
+            if (exits == null || exits.isEmpty()) {
+                throw new Exception("No exits found in the image");
+            }
+            
+            // Initialize pathfinding algorithms with proper error handling
+            if (imageProcessor.getEntrance() == null) {
+                throw new Exception("No entrance found in the image");
+            }
+            
+            dijkstra = new Dijkstra(grid, imageProcessor.getEntrance());
             aStar = new A_Star_Classification();
             
             selectEntranceBtn.setDisable(false);
@@ -214,6 +263,7 @@ public class GUI extends Application {
         } catch (Exception e) {
             showAlert("Processing Error", "Could not process image: " + e.getMessage());
             e.printStackTrace();
+            resetSelection(); // Reset UI state on failure
         }
     }
 
@@ -272,8 +322,8 @@ public class GUI extends Application {
         
         return nodes.stream()
             .min(Comparator.comparingDouble(node -> 
-                Math.sqrt(Math.pow(node.getX() - scaledX, 2) + Math.pow(node.getY() - scaledY, 2)))
-            )
+                Math.sqrt(Math.pow(node.getX() - scaledX, 2) + Math.pow(node.getY() - scaledY, 2))
+            ))
             .orElse(null);
     }
 
@@ -283,22 +333,35 @@ public class GUI extends Application {
             return;
         }
         
+        dijkstra = new Dijkstra(grid, selectedEntrance);
         dijkstra.Compute();
-        Node targetParkingSpot = dijkstra.getClosestParking();
+        targetParkingSpot = dijkstra.getClosestParking();
         
         if (targetParkingSpot == null) {
             showAlert("No Parking", "No available parking spots found");
             return;
         }
         
-        List<Node> path = aStar.findPathToNearestExit(selectedEntrance, Collections.singletonList(targetParkingSpot));
+        // Calculate path from entrance to parking spot using A*
+        List<Node> pathToParking = aStar.findPathToNearestExit(selectedEntrance, Collections.singletonList(targetParkingSpot));
         
-        if (path.isEmpty()) {
+        if (pathToParking.isEmpty()) {
             showAlert("Path Error", "Could not find a path to the parking spot");
             return;
         }
         
-        visualizePath(path);
+        // Calculate classification and distance to exit
+        double distanceToExit = aStar.calculateExitDistance(targetParkingSpot, exits);
+        Node.DistanceClassification classification = aStar.classifySpot(targetParkingSpot, exits);
+        
+        // Update info panel
+        classificationLabel.setText("Classification: " + classification.getLabel());
+        classificationLabel.setStyle("-fx-font-size: 14; -fx-text-fill: " + 
+            String.format("#%06x", classification.getColor() & 0x00FFFFFF));
+        distanceLabel.setText(String.format("Distance to exit: %.2f meters", distanceToExit));
+        
+        // Visualize the path
+        visualizePath(pathToParking);
     }
 
     private void visualizePath(List<Node> path) {
@@ -325,6 +388,15 @@ public class GUI extends Application {
         Circle pathIndicator = new Circle(5, Color.BLUE);
         overlayPane.getChildren().add(pathIndicator);
         pathTransition.setNode(pathIndicator);
+        
+        // Highlight the selected parking spot when animation completes
+        pathTransition.setOnFinished(e -> {
+            Circle parkingMarker = new Circle(10, Color.YELLOW);
+            parkingMarker.setCenterX(scaleXToView(targetParkingSpot.getX()));
+            parkingMarker.setCenterY(scaleYToView(targetParkingSpot.getY()));
+            overlayPane.getChildren().add(parkingMarker);
+        });
+        
         pathTransition.play();
     }
 
@@ -339,16 +411,22 @@ public class GUI extends Application {
     private void resetSelection() {
         selectedEntrance = null;
         selectedExit = null;
+        targetParkingSpot = null;
         entranceMarker.setVisible(false);
         exitMarker.setVisible(false);
         currentPath.getElements().clear();
         findPathButton.setDisable(true);
+        imageView.setImage(originalImage);
+        overlayPane.getChildren().removeIf(node -> node instanceof Circle && node != entranceMarker && node != exitMarker);
         
+        classificationLabel.setText("Classification: Not selected");
+        distanceLabel.setText("Distance to exit: -");
+        
+        currentSelectionMode = "NONE";
         if (processedImage != null) {
             selectEntranceBtn.setDisable(false);
             selectExitBtn.setDisable(true);
-            statusLabel.setText("Selections reset. Click 'Select Entrance' to begin");
-            currentSelectionMode = "NONE";
+            statusLabel.setText("Image processed. Click 'Select Entrance' to begin");
         } else {
             statusLabel.setText("Please process an image first");
         }
