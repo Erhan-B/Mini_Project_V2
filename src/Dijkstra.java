@@ -3,9 +3,11 @@
  * @version Mini project v1
  */
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -21,6 +23,8 @@ public class Dijkstra {
 	private Node[][] grid;
 	//HashMap storing the Double shortest distances from the entrance to each valid node
 	private HashMap<Node, Double> map;
+	//HashMap to store path to closest parking
+	private HashMap<Node, Node> previous;
 	
 	private Node entrance;
 	
@@ -30,8 +34,9 @@ public class Dijkstra {
 	 */
 	public Dijkstra(Node[][] grid, Node entrance) {
 		this.grid = grid;
-		map = new HashMap<Node, Double>();
+		this.map = new HashMap<Node, Double>();
 		this.entrance = entrance;
+		this.previous = new HashMap<Node,Node>();
 	}
 	
 	/**
@@ -52,6 +57,8 @@ public class Dijkstra {
 		
 		map.put(entrance, 0.0);
 		queue.add(entrance);
+		
+		previous.put(entrance, null);
 		
 		while(!queue.isEmpty()) {
 			Node current = queue.poll();
@@ -82,6 +89,7 @@ public class Dijkstra {
 					if(!map.containsKey(neighbor) || newDist < map.get(neighbor)) {
 						map.put(neighbor, newDist);
 						queue.add(neighbor);
+						previous.put(neighbor, current);
 					}
 				}
 			}
@@ -115,6 +123,20 @@ public class Dijkstra {
 //	    System.out.println();
 //	    return path;
 //	}
+	
+	public List<Node> getPathClosest() {
+		List<Node> path = new ArrayList<>();
+		if(closestParking == null) {
+			System.err.println("Dijkstra: No closest parking found");
+			return path;
+		}
+		Node curr = closestParking;
+		while(curr != null) {
+			path.add(0,curr);
+			curr = previous.get(curr);
+		}
+		return path;
+	}
 	
 	/**
 	 * Getter for the HashMap of Nodes and their shortest distance from the entrance

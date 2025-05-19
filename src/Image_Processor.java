@@ -13,8 +13,8 @@
 	import java.util.List;
 	
 	import javax.imageio.ImageIO;
-	
-	import javafx.util.Pair;
+
+import javafx.util.Pair;
 	
 	
 	/**
@@ -39,6 +39,27 @@
 		private List<Pair<Integer,Integer>> parkingCoords;
 		//The coordinates of the detected exits
 		private List<Pair<Integer,Integer>> exitCoords;
+		//The factor by which to scale the image down
+		private int scale = 5;
+		//The resolution of the Node grid
+		private int blockSize = 10;
+		//Threshold for maximum number of edge pixels before a section is no longer considered a road
+		private double edgePercentage = 0.005;
+		
+		/**
+		 * Parameterized constructor for the Image_Processor
+		 */
+		public Image_Processor(int scale, int blockSize, double edgePercentage) {
+			grid = null;
+			entrance = new Node(0,0,Node.NodeType.ENTRANCE,false);
+			entranceCoord = new Pair<>(0,0);
+			parkingCoords  = new ArrayList<>();
+			exitCoords = new ArrayList<>();
+			
+			this.scale = scale;
+			this.blockSize = blockSize;
+			this.edgePercentage = edgePercentage;
+		}
 		
 		/**
 		 * Default constructor for the Image_Processor
@@ -57,108 +78,105 @@
 		 * @param metaFilePath The path to the image that contains metadata
 		 * @param i
 		 */
-//		public void processImage(String imageFilePath, String metaFilePath, int i) {
-//			try {
-//				//Read the two image files
-//				BufferedImage colour = ImageIO.read(new File(imageFilePath));
-//				BufferedImage metaImage = ImageIO.read(new File(metaFilePath));
-//				
-//				//Scan through the images to find the entrances,parking spots, and exits and store them
-//				findSection(metaImage, 0, 255, 0); //Entrance (Green)
-//				findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
-//				findSection(metaImage, 255, 0, 0); //Exits (Red)
-//				
-//				//Generate a greyscale image
-//				BufferedImage grey = greyScale(colour, i);
-//				
-//				//Detect edges on the greyscale image and create an image containing those edges
-//				BufferedImage edge =  edges(grey, 30, i);
-//				
-//				//Filter out extra noise in image
-//	//			BufferedImage filtered = medianFilter(edge, i);
-//				
-//				//Create a grid based on the detected edges
-//				int scale = 5;
-//				int blockSize = 10;
-//				double edgePercentage = 0.005;
-//				int entranceX = entranceCoord.getKey();
-//				int entranceY = entranceCoord.getValue();
-//				grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
-//				
-//				//Create a visual representation of the Node[][] grid
-//			    BufferedImage visual = visualizeGrid(grid, scale);
-//			    File outputfile = new File("output/grid_result_" + i + ".png");
-//			    ImageIO.write(visual, "png", outputfile);
-//			    
-//			} catch (FileNotFoundException fnf) {
-//				System.err.println("Image Processor: File not found");
-//				fnf.printStackTrace();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
-//		}
-		
 		public void processImage(String imageFilePath, String metaFilePath, int i) {
-		    try {
-		        // Check if files exist first
-		        File imageFile = new File(imageFilePath);
-		        File metaFile = new File(metaFilePath);
-		        
-		        if (!imageFile.exists()) {
-		            throw new FileNotFoundException("Image file not found: " + imageFilePath);
-		        }
-		        if (!metaFile.exists()) {
-		            throw new FileNotFoundException("Metadata file not found: " + metaFilePath);
-		        }
-
-		        // Create output directory if it doesn't exist
-		        new File("output").mkdirs();
-
-		        //Read the two image files
-		        BufferedImage colour = ImageIO.read(imageFile);
-		        BufferedImage metaImage = ImageIO.read(metaFile);
-		        
-		        //Scan through the images to find the entrances,parking spots, and exits and store them
-		        findSection(metaImage, 0, 255, 0); //Entrance (Green)
-		        findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
-		        findSection(metaImage, 255, 0, 0); //Exits (Red)
-		        
-		        //Generate a greyscale image
-		        BufferedImage grey = greyScale(colour, i);
-		        
-		        //Detect edges on the greyscale image and create an image containing those edges
-		        BufferedImage edge = edges(grey, 30, i);
-		        
-		        //Create a grid based on the detected edges
-		        int scale = 5;
-		        int blockSize = 10;
-		        double edgePercentage = 0.005;
-		        int entranceX = entranceCoord.getKey();
-		        int entranceY = entranceCoord.getValue();
-		        grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
-		        
-		        if (grid == null) {
-		            throw new Exception("Grid creation failed");
-		        }
-		        
-		        //Create a visual representation of the Node[][] grid
-		        BufferedImage visual = visualizeGrid(grid, scale);
-		        File outputfile = new File("output/grid_result_" + i + ".png");
-		        ImageIO.write(visual, "png", outputfile);
-		        
-		    } catch (FileNotFoundException fnf) {
-		        System.err.println("Image Processor: File not found: " + fnf.getMessage());
-		        throw new RuntimeException(fnf);
-		    } catch (IOException e) {
-		        System.err.println("Image Processor: IO Error: " + e.getMessage());
-		        throw new RuntimeException(e);
-		    } catch (Exception e) {
-		        System.err.println("Image Processor: Error: " + e.getMessage());
-		        throw new RuntimeException(e);
-		    }
+			try {
+				//Read the two image files
+				BufferedImage colour = ImageIO.read(new File(imageFilePath));
+				BufferedImage metaImage = ImageIO.read(new File(metaFilePath));
+				
+				//Scan through the images to find the entrances,parking spots, and exits and store them
+				findSection(metaImage, 0, 255, 0); //Entrance (Green)
+				findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
+				findSection(metaImage, 255, 0, 0); //Exits (Red)
+				
+				//Generate a greyscale image
+				BufferedImage grey = greyScale(colour, i);
+				
+				//Detect edges on the greyscale image and create an image containing those edges
+				BufferedImage edge =  edges(grey, 30, i);
+				
+				//Filter out extra noise in image
+	//			BufferedImage filtered = medianFilter(edge, i);
+				
+				//Create a grid based on the detected edges
+				int entranceX = entranceCoord.getKey();
+				int entranceY = entranceCoord.getValue();
+				grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
+				
+				//Create a visual representation of the Node[][] grid
+			    BufferedImage visual = visualizeGrid(grid, scale);
+			    File outputfile = new File("output/grid_result_" + i + ".png");
+			    ImageIO.write(visual, "png", outputfile);
+			    
+			} catch (FileNotFoundException fnf) {
+				System.err.println("Image Processor: File not found");
+				fnf.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
 		}
+		
+//		public void processImage(String imageFilePath, String metaFilePath, int i) {
+//		    try {
+//		        // Check if files exist first
+//		        File imageFile = new File(imageFilePath);
+//		        File metaFile = new File(metaFilePath);
+//		        
+//		        if (!imageFile.exists()) {
+//		            throw new FileNotFoundException("Image file not found: " + imageFilePath);
+//		        }
+//		        if (!metaFile.exists()) {
+//		            throw new FileNotFoundException("Metadata file not found: " + metaFilePath);
+//		        }
+//
+//		        // Create output directory if it doesn't exist
+//		        new File("output").mkdirs();
+//
+//		        //Read the two image files
+//		        BufferedImage colour = ImageIO.read(imageFile);
+//		        BufferedImage metaImage = ImageIO.read(metaFile);
+//		        
+//		        //Scan through the images to find the entrances,parking spots, and exits and store them
+//		        findSection(metaImage, 0, 255, 0); //Entrance (Green)
+//		        findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
+//		        findSection(metaImage, 255, 0, 0); //Exits (Red)
+//		        
+//		        //Generate a greyscale image
+//		        BufferedImage grey = greyScale(colour, i);
+//		        
+//		        //Detect edges on the greyscale image and create an image containing those edges
+//		        BufferedImage edge = edges(grey, 30, i);
+//		        
+//		        //Create a grid based on the detected edges
+//		        int scale = 5;
+//		        int blockSize = 10;
+//		        double edgePercentage = 0.005;
+//		        int entranceX = entranceCoord.getKey();
+//		        int entranceY = entranceCoord.getValue();
+//		        grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
+//		        
+//		        if (grid == null) {
+//		            throw new Exception("Grid creation failed");
+//		        }
+//		        
+//		        //Create a visual representation of the Node[][] grid
+//		        BufferedImage visual = visualizeGrid(grid, scale);
+//		        File outputfile = new File("output/grid_result_" + i + ".png");
+//		        ImageIO.write(visual, "png", outputfile);
+//		        
+//		    } catch (FileNotFoundException fnf) {
+//		        System.err.println("Image Processor: File not found: " + fnf.getMessage());
+//		        throw new RuntimeException(fnf);
+//		    } catch (IOException e) {
+//		        System.err.println("Image Processor: IO Error: " + e.getMessage());
+//		        throw new RuntimeException(e);
+//		    } catch (Exception e) {
+//		        System.err.println("Image Processor: Error: " + e.getMessage());
+//		        throw new RuntimeException(e);
+//		    }
+//		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
+//		}
 		
 		/**
 		 * Method to scan through the image and find blocks of set colours
@@ -168,7 +186,7 @@
 		 * @param green (0-255) The green value of the block to be found
 		 * @param blue (0-255) The blue value of the block to be found
 		 */
-		public void findSection(BufferedImage image, int red, int green, int blue) {
+		private void findSection(BufferedImage image, int red, int green, int blue) {
 			//Get the width/height of the image
 			int width = image.getWidth();
 		    int height = image.getHeight();
@@ -182,7 +200,7 @@
 		            	//Get the colour of the pixel at that position
 		                Color c = new Color(image.getRGB(x, y));
 		                //If it matches the specified RGB value
-		                if (c.getRed() == red && c.getGreen() == green && c.getBlue() == blue) {
+		                if (colorClose(c, red, green, blue, 3)) {
 		                    //Store the top left corner of the rectangle
 		                    int maxX = x;
 		                    int maxY = y;
@@ -207,16 +225,16 @@
 		                    int centerY = (y + maxY) / 2;
 		                    
 		                    //Case where the rectangle is green (entrance)
-		                    if (red == 0 && green == 255 && blue == 0) {
+		                    if (red == 0 && green >= 240 && blue == 0) {
 		                        entranceCoord = new Pair<>(centerX, centerY);
 		                        entrance = new Node(centerX, centerY, Node.NodeType.ENTRANCE, false);
-		                        System.out.println("Entrance coords: (" + centerX + "," + centerY + ")");
+		                        System.out.println("Entrance block coords: (" + centerX + "," + centerY + ")");
 		                    //Case where the rectangle is blue (parking)
-		                    } else if (red == 0 && green == 0 && blue == 255) {
+		                    } else if (red == 0 && green == 0 && blue >= 240) {
 		                        parkingCoords.add(new Pair<>(centerX, centerY));
-		                        System.out.println("Added parking coord: (" + centerX + "," + centerY + ")");
+		                        System.out.println("Added block parking coord: (" + centerX + "," + centerY + ")");
 		                    //Case where the rectangle is red (exit)
-		                    } else if (red == 255 && green == 0 && blue == 0) {
+		                    } else if (red >= 240 && green == 0 && blue == 0) {
 		                    	exitCoords.add(new Pair<>(centerX, centerY));
 		                    	System.out.println("Added new exit coord: (" + centerX + "," + centerY + ")");
 		                    }
@@ -226,6 +244,13 @@
 		    }
 		}
 		
+		
+		private boolean colorClose(Color c, int r, int g, int b, int tolerance) {
+		    return Math.abs(c.getRed() - r) <= tolerance &&
+		           Math.abs(c.getGreen() - g) <= tolerance &&
+		           Math.abs(c.getBlue() - b) <= tolerance;
+		}
+
 		/**
 		 * Method to create a visual representation of the Node[][] grid
 		 * Added mostly for debug purposes
@@ -264,6 +289,8 @@
 		            	colour = Color.BLUE; //Parking spot
 		            } else if (node.getType() == Node.NodeType.EXIT) {
 		                colour = Color.RED; //Exit
+		            } else if (node.getType() == Node.NodeType.PATH) {
+		            	colour = Color.ORANGE;
 		            } else {
 		            	colour = Color.ORANGE; //Default
 		            }
@@ -525,6 +552,22 @@
 			        if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
 			            grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
 			        }
+			        
+			    }
+			}
+			
+			for(Pair<Integer,Integer> p : exitCoords) {
+				//Create buffer area around the exit
+				int exitGridX = Math.round((float) p.getKey() / scale);
+				int exitGridY = Math.round((float) p.getValue() / scale);
+			    for (int dy = -5; dy <= 5; dy++) {
+			        for (int dx = -5; dx <= 5; dx++) {
+			            int nx = exitGridX + dx;
+			            int ny = exitGridY + dy;
+			            if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
+			                grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
+			            }
+			        }
 			    }
 			}
 			//Loop through the image
@@ -631,6 +674,41 @@
 //			    }
 //			}
 		}
+		
+//		public BufferedImage displayPath(String imagePath, List<Node> path, Color c) {
+////			BufferedImage image = null;
+////			try {
+////				image = ImageIO.read(new File(imagePath));
+////			} catch (IOException ex) {
+////				ex.printStackTrace();
+////			}
+////			BufferedImage retImage = image;
+////			for(Node n : path) {
+////				image.setRGB(n.getX(), n.getY(), c.getRGB());
+////			}
+////			try {
+////				ImageIO.write(retImage, "png", new File(imagePath));
+////			} catch (IOException e) {
+////				// TODO Auto-generated catch block
+////				e.printStackTrace();
+////			}
+//			
+//			return retImage;
+//		}
+		
+		public void updateGrid(Node[][] grid, List<Node> path, String filePath) { 
+			for(Node n : path) {
+				
+					grid[n.getY()][n.getX()].setType(Node.NodeType.PATH);	
+			}
+			BufferedImage image = visualizeGrid(grid, scale);
+			try {
+				ImageIO.write(image, "png", new File(filePath));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	
 		/**
 		 * Getter for the grid coordinates of the entrance
@@ -663,7 +741,9 @@
 		public List<Node> getExitList() {
 			List<Node> nodeList = new ArrayList<Node>();
 			for(Pair<Integer,Integer> p : exitCoords) {
-				Node exitNode = grid[p.getKey()][p.getValue()];
+				int exitGridX = Math.round((float) p.getKey() / scale);
+				int exitGridY = Math.round((float) p.getValue() / scale);
+				Node exitNode = grid[exitGridY][exitGridX];
 				nodeList.add(exitNode);
 			}
 			return nodeList;

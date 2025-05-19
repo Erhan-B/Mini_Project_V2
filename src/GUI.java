@@ -184,7 +184,9 @@ public class GUI extends Application {
             // Load and display each processed image
             greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
             edgeImageView.setImage(new Image(new File("output/image_0_edge.png").toURI().toString()));
-            gridImageView.setImage(new Image(new File("output/grid_result_0.png").toURI().toString()));
+//            gridImageView.setImage(new Image(new File("output/grid_result_0.png").toURI().toString()));
+            gridImageView.setImage(new Image(new File("output/image_1_path.png").toURI().toString()));
+            
         } catch (Exception e) {
             showAlert("Error", "Could not load processed images: " + e.getMessage());
         }
