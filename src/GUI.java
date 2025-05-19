@@ -28,14 +28,14 @@ public class GUI extends Application {
         initializeComponents();
         
         // Create layout
+        HBox buttonBox = createTopButtonBox();
         GridPane imageGrid = createImageGrid();
-        HBox buttonBox = createButtonBox();
         VBox infoBox = createInfoBox();
         
         // Main layout
         BorderPane root = new BorderPane();
+        root.setTop(buttonBox);
         root.setCenter(imageGrid);
-        root.setBottom(buttonBox);
         root.setRight(infoBox);
         root.setPadding(new Insets(10));
         
@@ -60,13 +60,21 @@ public class GUI extends Application {
         resetBtn = new Button("Reset");
         
         // Info labels
-        classificationLabel = new Label("Classification: Not processed");
         distanceLabel = new Label("Distance to exit: -");
+        classificationLabel = new Label("Classification: Not processed");
+        
         
         // Set button actions
         selectImageBtn.setOnAction(e -> selectImage());
         processBtn.setOnAction(e -> processImage());
         resetBtn.setOnAction(e -> reset());
+    }
+
+    private HBox createTopButtonBox() {
+        HBox box = new HBox(10, selectImageBtn, processBtn, resetBtn);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(10));
+        return box;
     }
 
     private GridPane createImageGrid() {
@@ -101,18 +109,11 @@ public class GUI extends Application {
         return view;
     }
 
-    private HBox createButtonBox() {
-        HBox box = new HBox(10, selectImageBtn, processBtn, resetBtn);
-        box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(10));
-        return box;
-    }
-
     private VBox createInfoBox() {
         VBox box = new VBox(10, 
             new Label("Parking Spot Info:"),
-            classificationLabel,
-            distanceLabel);
+            distanceLabel,classificationLabel
+            );
         box.setPadding(new Insets(10));
         box.setMinWidth(200);
         return box;
@@ -137,6 +138,11 @@ public class GUI extends Application {
                 Image image = new Image(selectedFile.toURI().toString());
                 originalImageView.setImage(image);
                 processBtn.setDisable(false);
+                
+                // Reset classification info when new image is selected
+                distanceLabel.setText("Distance to exit: -");
+                classificationLabel.setText("Classification: Not processed");
+                
             } catch (Exception e) {
                 showAlert("Error", "Could not load image: " + e.getMessage());
             }
@@ -185,7 +191,12 @@ public class GUI extends Application {
     }
 
     private void updateClassificationInfo() {
-        if (imageProcessor == null || imageProcessor.getGrid() == null) return;
+        if (imageProcessor == null || imageProcessor.getGrid() == null) {
+        	distanceLabel.setText("Distance to exit: Error");
+            classificationLabel.setText("Classification: Error - No grid");
+            
+            return;
+        }
         
         try {
             // Get closest parking spot
@@ -193,20 +204,34 @@ public class GUI extends Application {
             dijkstra.Compute();
             Node closestParking = dijkstra.getClosestParking();
             
-            if (closestParking != null) {
-                // Calculate classification
-                A_Star_Classification aStar = new A_Star_Classification();
-                double distance = aStar.calculateExitDistance(closestParking, imageProcessor.getExitList());
-                Node.DistanceClassification classification = aStar.classifySpot(closestParking, imageProcessor.getExitList());
+            if (closestParking == null) {
+            	distanceLabel.setText("Distance to exit: -");
+                classificationLabel.setText("Classification: No parking found");
                 
-                // Update labels
-                classificationLabel.setText("Classification: " + classification.getLabel());
-                distanceLabel.setText(String.format("Distance to exit: %.2f meters", distance));
+                return;
             }
+            
+            // Calculate classification
+            A_Star_Classification aStar = new A_Star_Classification();
+            double distance = aStar.calculateExitDistance(closestParking, imageProcessor.getExitList());
+            Node.DistanceClassification classification = aStar.classifySpot(closestParking, imageProcessor.getExitList());
+            
+            // Update labels
+            classificationLabel.setText("Classification: " + classification.getLabel());
+            classificationLabel.setStyle("-fx-text-fill: " + getColorHex(classification.getColor()));
+            distanceLabel.setText(String.format("Distance to exit: %.2f units", distance));
+            
         } catch (Exception e) {
-            classificationLabel.setText("Classification: Error");
-            distanceLabel.setText("Distance to exit: Error");
+        	distanceLabel.setText("Distance to exit: Error");
+            classificationLabel.setText("Classification: Error in calculation");
+            
+            e.printStackTrace();
         }
+    }
+
+    private String getColorHex(int rgb) {
+        // Convert RGB integer to hex color
+        return String.format("#%06X", (0xFFFFFF & rgb));
     }
 
     private void reset() {
@@ -222,8 +247,10 @@ public class GUI extends Application {
         imageProcessor = null;
         
         // Reset info labels
-        classificationLabel.setText("Classification: Not processed");
         distanceLabel.setText("Distance to exit: -");
+        classificationLabel.setText("Classification: Not processed");
+        
+        classificationLabel.setStyle(""); // Reset color
     }
 
     private void showAlert(String title, String message) {
