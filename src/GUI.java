@@ -1,367 +1,348 @@
+/**
+ * @author Y Fakir 222114205
+ * @version Mini_Project
+ */
+
+/**
+ * GUI is a JavaFX application for visualizing parking lot image processing.
+ * It allows users to select an image, process it using the Image_Processor class,
+ * and display intermediate and final results including classification and distance information.
+ */
 import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.*;
-import javafx.stage.Stage;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
-import javafx.scene.input.MouseEvent;
-import javafx.geometry.*;
-import javafx.animation.*;
-import javafx.util.Duration;
+import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import java.io.File;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
+import java.util.List;
 
 public class GUI extends Application {
-    private ImageView imageView;
-    private Image originalImage;
-    private Image processedImage;
-    private List<Node> nodes;
-    private List<Node> parkingSpots;
-    private Node selectedEntrance;
-    private Node selectedExit;
-    private Path currentPath;
-    private Circle entranceMarker;
-    private Circle exitMarker;
-    private Pane overlayPane;
-    private ComboBox<String> imageSelection;
-    private Button processButton;
-    private Button findPathButton;
-    private Button resetButton;
-    private int currentImageIndex = 1;
-    private Dijkstra dijkstra;
-    private A_Star_Classification aStar;
+    private ImageView originalImageView;
+    private ImageView greyScaleImageView;
+    private ImageView edgeImageView;
+    private ImageView gridImageView;
+    private Button selectImageBtn;
+    private Button processBtn;
+    private Button resetBtn;
+    private Label classificationLabel;
+    private Label distanceLabel;
+    private File selectedFile;
+    private Image_Processor imageProcessor;
 
-    private Label statusLabel;
-    private String currentSelectionMode = "NONE";
-    private Button selectEntranceBtn;
-    private Button selectExitBtn;
-
+    /**
+     * The entry point for the JavaFX application.
+     * @param primaryStage the primary window of the application.
+     */
     @Override
     public void start(Stage primaryStage) {
+        // Initialize UI components
         initializeComponents();
         
+        // Set up layout components
+        HBox buttonBox = createTopButtonBox();
+        GridPane imageGrid = createImageGrid();
+        VBox infoBox = createInfoBox();
+        
+        // Main layout container
         BorderPane root = new BorderPane();
+        root.setTop(buttonBox);
+        root.setCenter(imageGrid);
+        root.setRight(infoBox);
+        root.setPadding(new Insets(10));
         
-        // Top controls (image selection and processing)
-        HBox topControls = createTopControls();
-        
-        // Center area (image with overlay)
-        StackPane imageContainer = new StackPane();
-        imageContainer.getChildren().addAll(imageView, overlayPane);
-        
-        // Bottom controls (selection and pathfinding)
-        GridPane bottomControls = createBottomControls();
-        
-        // Status bar
-        statusLabel = new Label("Please process an image first");
-        statusLabel.setStyle("-fx-font-size: 14; -fx-text-fill: white; -fx-background-color: #333; -fx-padding: 10;");
-        statusLabel.setMaxWidth(Double.MAX_VALUE);
-        
-        VBox mainContainer = new VBox();
-        mainContainer.getChildren().addAll(topControls, imageContainer, bottomControls, statusLabel);
-        
-        root.setCenter(mainContainer);
-        
-        loadImage(currentImageIndex);
-        
-        Scene scene = new Scene(root, 1000, 850);
-        primaryStage.setTitle("Parking Lot Optimizer");
+        // Set up and display the scene
+        Scene scene = new Scene(root, 1200, 800);
+        primaryStage.setTitle("Parking Lot Image Processor");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
+    /**
+     * Initializes all GUI components and their actions.
+     */
     private void initializeComponents() {
-        imageView = new ImageView();
-        imageView.setPreserveRatio(true);
-        imageView.setFitWidth(900);
-        imageView.setFitHeight(700);
+        // Set up image views
+        originalImageView = createImageView();
+        greyScaleImageView = createImageView();
+        edgeImageView = createImageView();
+        gridImageView = createImageView();
         
-        overlayPane = new Pane();
-        overlayPane.setMouseTransparent(true);
+        // Set up control buttons
+        selectImageBtn = new Button("Select Image");
+        processBtn = new Button("Process Image");
+        processBtn.setDisable(true); // Disabled until image is selected
+        resetBtn = new Button("Reset");
         
-        entranceMarker = new Circle(10, Color.GREEN);
-        entranceMarker.setVisible(false);
-        exitMarker = new Circle(10, Color.RED);
-        exitMarker.setVisible(false);
-        currentPath = new Path();
-        currentPath.setStroke(Color.BLUE);
-        currentPath.setStrokeWidth(3);
+        // Set up info labels
+        distanceLabel = new Label("Distance to exit: -");
+        classificationLabel = new Label("Classification: Not processed");
         
-        overlayPane.getChildren().addAll(entranceMarker, exitMarker, currentPath);
-        imageView.setOnMouseClicked(this::handleImageClick);
+        // Assign button event handlers
+        selectImageBtn.setOnAction(e -> selectImage());
+        processBtn.setOnAction(e -> displayProcessedImages());
+        resetBtn.setOnAction(e -> reset());
     }
 
-    private HBox createTopControls() {
-        HBox controls = new HBox(10);
-        controls.setPadding(new Insets(10));
-        controls.setAlignment(Pos.CENTER);
-        
-        imageSelection = new ComboBox<>();
-        for (int i = 1; i <= 6; i++) {
-            imageSelection.getItems().add("Image " + i);
-        }
-        imageSelection.getSelectionModel().selectFirst();
-        imageSelection.setOnAction(e -> {
-            currentImageIndex = imageSelection.getSelectionModel().getSelectedIndex() + 1;
-            loadImage(currentImageIndex);
-        });
-        
-        processButton = new Button("Process Image");
-        processButton.setOnAction(e -> processCurrentImage());
-        
-        controls.getChildren().addAll(
-            new Label("Select Image:"), imageSelection,
-            processButton
-        );
-        
-        return controls;
+    /**
+     * Creates a horizontal box for the top control buttons.
+     * @return configured HBox
+     */
+    private HBox createTopButtonBox() {
+        HBox box = new HBox(10, selectImageBtn, processBtn, resetBtn);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(10));
+        return box;
     }
 
-    private GridPane createBottomControls() {
+    /**
+     * Creates a grid to display image views.
+     * @return configured GridPane
+     */
+    private GridPane createImageGrid() {
         GridPane grid = new GridPane();
-        grid.setPadding(new Insets(10));
+        grid.setAlignment(Pos.CENTER);
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setAlignment(Pos.CENTER);
+        grid.setPadding(new Insets(10));
         
-        // Selection buttons column
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setHgrow(Priority.SOMETIMES);
-        grid.getColumnConstraints().add(col1);
-        
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setHgrow(Priority.SOMETIMES);
-        grid.getColumnConstraints().add(col2);
-        
-        // Row 1: Selection buttons
-        selectEntranceBtn = new Button("Select Entrance");
-        selectEntranceBtn.setStyle("-fx-base: #4CAF50;");
-        selectEntranceBtn.setDisable(true);
-        selectEntranceBtn.setOnAction(e -> {
-            currentSelectionMode = "ENTRANCE";
-            statusLabel.setText("Click on the image to select ENTRANCE point");
-            selectEntranceBtn.setDisable(true);
-            selectExitBtn.setDisable(false);
-        });
-        
-        selectExitBtn = new Button("Select Exit");
-        selectExitBtn.setStyle("-fx-base: #F44336;");
-        selectExitBtn.setDisable(true);
-        selectExitBtn.setOnAction(e -> {
-            currentSelectionMode = "EXIT";
-            statusLabel.setText("Click on the image to select EXIT point");
-            selectExitBtn.setDisable(true);
-            selectEntranceBtn.setDisable(false);
-        });
-        
-        grid.add(selectEntranceBtn, 0, 0);
-        grid.add(selectExitBtn, 1, 0);
-        
-        // Row 2: Pathfinding button
-        findPathButton = new Button("Find Path to Parking Spot");
-        findPathButton.setStyle("-fx-base: #2196F3;");
-        findPathButton.setDisable(true);
-        findPathButton.setOnAction(e -> findPathToParkingSpot());
-        grid.add(findPathButton, 0, 1, 2, 1);
-        
-        // Row 3: Reset button
-        resetButton = new Button("Reset Selections");
-        resetButton.setOnAction(e -> resetSelection());
-        grid.add(resetButton, 0, 2, 2, 1);
+        // Add image views with titles
+        grid.add(createImageBox("Original Image", originalImageView), 0, 0);
+        grid.add(createImageBox("GreyScale Image", greyScaleImageView), 1, 0);
+        grid.add(createImageBox("Edge Detection", edgeImageView), 0, 1);
+        grid.add(createImageBox("Processed Grid", gridImageView), 1, 1);
         
         return grid;
     }
 
-    private void loadImage(int index) {
-        try {
-            String imagePath = "data/image_" + index + ".jpg";
-            originalImage = new Image(new File(imagePath).toURI().toString());
-            imageView.setImage(originalImage);
-            resetSelection();
-        } catch (Exception e) {
-            showAlert("Error", "Could not load image: " + e.getMessage());
+    /**
+     * Creates a VBox containing an image label and its ImageView.
+     * @param title the label title
+     * @param imageView the associated ImageView
+     * @return configured VBox
+     */
+    private VBox createImageBox(String title, ImageView imageView) {
+        Label label = new Label(title);
+        label.setStyle("-fx-font-weight: bold");
+        VBox box = new VBox(5, label, imageView);
+        box.setAlignment(Pos.CENTER);
+        return box;
+    }
+
+    /**
+     * Creates a configured ImageView for image display.
+     * @return new ImageView
+     */
+    private ImageView createImageView() {
+        ImageView view = new ImageView();
+        view.setFitWidth(400);
+        view.setFitHeight(300);
+        view.setPreserveRatio(true);
+        return view;
+    }
+
+    /**
+     * Creates a VBox to display parking classification and distance info.
+     * @return configured VBox
+     */
+    private VBox createInfoBox() {
+        VBox box = new VBox(10, 
+            new Label("Parking Spot Info:"),
+            distanceLabel,
+            classificationLabel
+        );
+        box.setPadding(new Insets(10));
+        box.setMinWidth(200);
+        return box;
+    }
+
+    /**
+     * Opens a file chooser to allow the user to select an image for processing.
+     */
+    private void selectImage() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Parking Lot Image");
+        fileChooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("Image Files", "*.jpg", "*.png"));
+
+        // Open from data directory if available
+        File dataDir = new File("data");
+        if (dataDir.exists()) {
+            fileChooser.setInitialDirectory(dataDir);
+        }
+
+        // Show dialog and set image if a file is chosen
+        selectedFile = fileChooser.showOpenDialog(null);
+        if (selectedFile != null) {
+            try {
+                Image image = new Image(selectedFile.toURI().toString());
+                originalImageView.setImage(image);
+                processBtn.setDisable(false);
+                distanceLabel.setText("Distance to exit: -");
+                classificationLabel.setText("Classification: Not processed");
+            } catch (Exception e) {
+                showAlert("Error", "Could not load image: " + e.getMessage());
+            }
         }
     }
 
-    private void processCurrentImage() {
+    /**
+     * Processes the selected image and displays the output images and classification.
+     */
+    private void displayProcessedImages() {
+        if (selectedFile == null) return;
+
         try {
-            Image_Processor.processImage("data/image_" + currentImageIndex + ".jpg", currentImageIndex);
-            
-            processedImage = new Image(new File("output/image_" + currentImageIndex + "_filtered.png").toURI().toString());
-            imageView.setImage(processedImage);
-            
-            Image_Processor imageProcessor = new Image_Processor();
-            BufferedImage bufferedImage = ImageIO.read(new File("data/image_" + currentImageIndex + ".jpg"));
-            graph = imageProcessor.processImage(bufferedImage);
-            nodes = graph.getNodes();
-            
-            parkingSpots = nodes.stream()
-                .filter(Node::isParkingSpot)
-                .collect(Collectors.toList());
-            
-            dijkstra = new Dijkstra(graph.createGrid(bufferedImage.getHeight(), bufferedImage.getWidth()));
-            aStar = new A_Star_Classification();
-            
-            selectEntranceBtn.setDisable(false);
-            selectExitBtn.setDisable(true);
-            statusLabel.setText("Image processed. Click 'Select Entrance' to begin");
-            
+            processBtn.setDisable(true); // Prevent multiple clicks during processing
+            imageProcessor = new Image_Processor();
+
+            // Extract base file name
+            String fileName = selectedFile.getName();
+            String baseName = fileName.substring(0, fileName.lastIndexOf("."));
+
+            // Output file for processed grid (path)
+            String gridFile = "output/" + baseName + "_path.png";
+
+            // Call processor on selected image and corresponding metadata
+            imageProcessor.processImage(
+                "data/" + fileName,
+                "data/" + baseName + "_meta.jpg",
+                0);
+
+            // Display processed outputs
+            greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
+            edgeImageView.setImage(new Image(new File("output/image_0_edge.png").toURI().toString()));
+            gridImageView.setImage(new Image(new File(gridFile).toURI().toString()));
+
+            // Update classification details
+            updateClassificationInfo();
+
         } catch (Exception e) {
-            showAlert("Processing Error", "Could not process image: " + e.getMessage());
+            showAlert("Processing Error", "Failed to process image: " + e.getMessage());
+            e.printStackTrace();
+            reset();
+        }
+    }
+
+    /**
+     * Updates classification and distance information based on processed image.
+     */
+    private void updateClassificationInfo() {
+        if (imageProcessor == null || imageProcessor.getGrid() == null) {
+            distanceLabel.setText("Distance to exit: Error");
+            classificationLabel.setText("Classification: Error - No grid");
+            return;
+        }
+
+        try {
+            Node entrance = imageProcessor.getEntrance();
+            if (entrance == null) {
+                distanceLabel.setText("Distance to exit: Error");
+                classificationLabel.setText("Classification: Error - No entrance");
+                return;
+            }
+
+            Dijkstra dijkstra = new Dijkstra(imageProcessor.getGrid(), entrance);
+            dijkstra.Compute();
+            Node closestParking = dijkstra.getClosestParking();
+
+            if (closestParking == null) {
+                distanceLabel.setText("Distance to exit: -");
+                classificationLabel.setText("Classification: No parking found");
+                return;
+            }
+
+            List<Node> exits = imageProcessor.getExitList();
+            if (exits.isEmpty()) {
+                distanceLabel.setText("Distance to exit: Error");
+                classificationLabel.setText("Classification: Error - No exits");
+                return;
+            }
+
+            // Use A* to classify the parking spot
+            A_Star_Classification aStar = new A_Star_Classification();
+            double distance = aStar.calculateExitDistance(closestParking, exits);
+
+            if (distance < 0) {
+                // Fallback using Dijkstra path
+                List<Node> dijkstraPath = dijkstra.getPathClosest();
+                if (!dijkstraPath.isEmpty()) {
+                    distance = 0;
+                    for (int i = 0; i < dijkstraPath.size() - 1; i++) {
+                        distance += dijkstraPath.get(i).distanceTo(dijkstraPath.get(i + 1));
+                    }
+                    distanceLabel.setText(String.format("Distance to exit: ~%.2f units (approx)", distance));
+                } else {
+                    distanceLabel.setText("Distance to exit: No path found");
+                }
+                classificationLabel.setText("Classification: Unreachable");
+                classificationLabel.setStyle("-fx-text-fill: #F44336");
+                return;
+            }
+
+            // Classification label and color
+            Node.DistanceClassification classification = aStar.classifySpot(closestParking, exits);
+            classificationLabel.setText("Classification: " + classification.getLabel());
+            classificationLabel.setStyle("-fx-text-fill: " + getColorHex(classification.getColor()));
+            distanceLabel.setText(String.format("Distance to exit: %.2f units", distance));
+
+        } catch (Exception e) {
+            distanceLabel.setText("Distance to exit: Error");
+            classificationLabel.setText("Classification: Error in calculation");
             e.printStackTrace();
         }
     }
 
-    private void handleImageClick(MouseEvent event) {
-        if (processedImage == null || currentSelectionMode.equals("NONE")) {
-            showAlert("Error", "Please select an action first");
-            return;
-        }
-        
-        double x = event.getX();
-        double y = event.getY();
-        
-        Node clickedNode = findNearestNode(x, y);
-        
-        if (clickedNode == null) {
-            showAlert("Selection Error", "No valid node found at this location");
-            return;
-        }
-        
-        if (currentSelectionMode.equals("ENTRANCE")) {
-            if (!clickedNode.isEntrance()) {
-                showAlert("Selection Error", "Please select a valid entrance point (green area)");
-                return;
-            }
-            selectedEntrance = clickedNode;
-            entranceMarker.setCenterX(x);
-            entranceMarker.setCenterY(y);
-            entranceMarker.setVisible(true);
-            statusLabel.setText("Entrance selected. Now please select EXIT point");
-            currentSelectionMode = "EXIT";
-            selectExitBtn.setDisable(false);
-        } 
-        else if (currentSelectionMode.equals("EXIT")) {
-            if (!clickedNode.isExit()) {
-                showAlert("Selection Error", "Please select a valid exit point (red area)");
-                return;
-            }
-            selectedExit = clickedNode;
-            exitMarker.setCenterX(x);
-            exitMarker.setCenterY(y);
-            exitMarker.setVisible(true);
-            statusLabel.setText("Both entrance and exit selected. Click 'Find Path' to continue");
-            currentSelectionMode = "NONE";
-            findPathButton.setDisable(false);
-        }
+    /**
+     * Converts an RGB int value to hex color string.
+     * @param rgb integer RGB value
+     * @return hex string representation
+     */
+    private String getColorHex(int rgb) {
+        return String.format("#%06X", (0xFFFFFF & rgb));
     }
 
-    private Node findNearestNode(double x, double y) {
-        if (nodes == null || nodes.isEmpty()) return null;
-        
-        double scaleX = originalImage.getWidth() / imageView.getBoundsInParent().getWidth();
-        double scaleY = originalImage.getHeight() / imageView.getBoundsInParent().getHeight();
-        
-        double scaledX = x * scaleX;
-        double scaledY = y * scaleY;
-        
-        return nodes.stream()
-            .min(Comparator.comparingDouble(node -> 
-                Math.sqrt(Math.pow(node.getX() - scaledX, 2) + Math.pow(node.getY() - scaledY, 2)))
-            )
-            .orElse(null);
+    /**
+     * Resets the UI and internal state.
+     */
+    private void reset() {
+        // Clear image views
+        originalImageView.setImage(null);
+        greyScaleImageView.setImage(null);
+        edgeImageView.setImage(null);
+        gridImageView.setImage(null);
+
+        // Reset control states
+        processBtn.setDisable(true);
+        selectedFile = null;
+        imageProcessor = null;
+
+        // Reset labels
+        distanceLabel.setText("Distance to exit: -");
+        classificationLabel.setText("Classification: Not processed");
+        classificationLabel.setStyle("");
     }
 
-    private void findPathToParkingSpot() {
-        if (selectedEntrance == null || selectedExit == null) {
-            showAlert("Error", "Please select both entrance and exit points");
-            return;
-        }
-        
-        dijkstra.Compute();
-        Node targetParkingSpot = dijkstra.getClosestParking();
-        
-        if (targetParkingSpot == null) {
-            showAlert("No Parking", "No available parking spots found");
-            return;
-        }
-        
-        List<Node> path = aStar.findPathToNearestExit(selectedEntrance, Collections.singletonList(targetParkingSpot));
-        
-        if (path.isEmpty()) {
-            showAlert("Path Error", "Could not find a path to the parking spot");
-            return;
-        }
-        
-        visualizePath(path);
-    }
-
-    private void visualizePath(List<Node> path) {
-        currentPath.getElements().clear();
-        
-        PathElement firstMove = new MoveTo(
-            scaleXToView(path.get(0).getX()),
-            scaleYToView(path.get(0).getY())
-        );
-        currentPath.getElements().add(firstMove);
-        
-        for (int i = 1; i < path.size(); i++) {
-            PathElement line = new LineTo(
-                scaleXToView(path.get(i).getX()),
-                scaleYToView(path.get(i).getY())
-            );
-            currentPath.getElements().add(line);
-        }
-        
-        PathTransition pathTransition = new PathTransition();
-        pathTransition.setDuration(Duration.seconds(3));
-        pathTransition.setPath(currentPath);
-        
-        Circle pathIndicator = new Circle(5, Color.BLUE);
-        overlayPane.getChildren().add(pathIndicator);
-        pathTransition.setNode(pathIndicator);
-        pathTransition.play();
-    }
-
-    private double scaleXToView(double x) {
-        return x * (imageView.getBoundsInParent().getWidth() / originalImage.getWidth());
-    }
-
-    private double scaleYToView(double y) {
-        return y * (imageView.getBoundsInParent().getHeight() / originalImage.getHeight());
-    }
-
-    private void resetSelection() {
-        selectedEntrance = null;
-        selectedExit = null;
-        entranceMarker.setVisible(false);
-        exitMarker.setVisible(false);
-        currentPath.getElements().clear();
-        findPathButton.setDisable(true);
-        
-        if (processedImage != null) {
-            selectEntranceBtn.setDisable(false);
-            selectExitBtn.setDisable(true);
-            statusLabel.setText("Selections reset. Click 'Select Entrance' to begin");
-            currentSelectionMode = "NONE";
-        } else {
-            statusLabel.setText("Please process an image first");
-        }
-    }
-
+    /**
+     * Displays an error alert dialog.
+     * @param title alert title
+     * @param message message body
+     */
     private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
     }
 
+    /**
+     * Launches the JavaFX application.
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         launch(args);
     }

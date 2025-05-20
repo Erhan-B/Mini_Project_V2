@@ -25,7 +25,7 @@ public class Node {
     	ENTRANCE,                //Parking lot entrance
     	EXIT,                    //Parking lot exit.
     	PARKING_SPOT,            //Individual parking spot
-    	JUNCTION,                //Junction point in driving lanes.
+    	PATH,                //Junction point in driving lanes.
     	ROAD
     }
     
@@ -84,7 +84,7 @@ public class Node {
     public boolean isRoad() { return this.type == NodeType.ROAD; }
     public boolean isEntrance() { return this.type == NodeType.ENTRANCE; }
     public boolean isExit() { return this.type == NodeType.EXIT; }
-    public boolean isJunction() { return this.type == NodeType.JUNCTION; }
+    public boolean isPath() { return this.type == NodeType.PATH; }
     public boolean isParkingSpot() { return this.type == NodeType.PARKING_SPOT; }
     
     //Setters

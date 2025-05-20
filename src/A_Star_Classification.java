@@ -9,23 +9,54 @@ public class A_Star_Classification {
 		super();
 	}
 
-	/**
-     * Finds the shortest path from a parking spot to the nearest exit
-     * @param parkingSpot - The starting parking spot node
-     * @param exits - Exit node in parking lot
-     * @return Path to the nearest exit (empty if no path found)
-     */
-    public List<Node> findPathToNearestExit(Node parkingSpot, List<Node> exits) {
-        if (parkingSpot == null || exits == null || exits.isEmpty()) {
-            return Collections.emptyList();
-        }
+//	/**
+//     * Finds the shortest path from a parking spot to the nearest exit
+//     * @param parkingSpot - The starting parking spot node
+//     * @param exits - Exit node in parking lot
+//     * @return Path to the nearest exit (empty if no path found)
+//     */
+//    public List<Node> findPathToNearestExit(Node parkingSpot, List<Node> exits) {
+//        if (parkingSpot == null || exits == null || exits.isEmpty()) {
+//            return Collections.emptyList();
+//        }
+//
+//        //Find the nearest exit by straight line distance first - h (Multiple exits?)
+//        Node nearestExit = findNearestExitByHeuristic(parkingSpot, exits);
+//        
+//        //Now find the actual path using A* algorithm
+//        return findPath(parkingSpot, nearestExit);
+//    }
+	 
+	 /**
+	  * Finds the shortest path from a parking spot to the nearest exit
+	  * @param parkingSpot - The starting parking spot node
+	  * @param exits - List of exit nodes in parking lot
+	  * @return Path to the nearest exit (empty if no path found)
+	  */
+	 public List<Node> findPathToNearestExit(Node parkingSpot, List<Node> exits) {
+	     if (parkingSpot == null || exits == null || exits.isEmpty()) {
+	         return Collections.emptyList();
+	     }
 
-        //Find the nearest exit by straight line distance first - h (Multiple exits?)
-        Node nearestExit = findNearestExitByHeuristic(parkingSpot, exits);
-        
-        //Now find the actual path using A* algorithm
-        return findPath(parkingSpot, nearestExit);
-    }
+	     List<Node> shortestPath = Collections.emptyList();
+	     double shortestDistance = Double.MAX_VALUE;
+	     
+	     for (Node exit : exits) {
+	         List<Node> currentPath = findPath(parkingSpot, exit);
+	         if (!currentPath.isEmpty()) {
+	             double currentDistance = 0;
+	             for (int i = 0; i < currentPath.size() - 1; i++) {
+	                 currentDistance += currentPath.get(i).distanceTo(currentPath.get(i + 1));
+	             }
+	             if (currentDistance < shortestDistance) {
+	                 shortestDistance = currentDistance;
+	                 shortestPath = currentPath;
+	             }
+	         }
+	     }
+	     
+	     return shortestPath;
+	 }
     
     /**
      * Calculates the Manhattan distance heuristic between two nodes
@@ -64,69 +95,50 @@ public class A_Star_Classification {
      * @param target - The target exit we looking to reach (nearest exit)
      * @return List of nodes that lead to the exit with respect to shortest path to exit 
      */
-    private List<Node> findPath(Node start, Node target) {
-        resetGraphData(start); //Cleans node data between searches
-
-        //Custom Comparator, using Anonymous inner class
-        PriorityQueue<Node> toSearch = new PriorityQueue<>(new Comparator<Node>() {
-            @Override
-            public int compare(Node node1, Node node2) {
-                if (node1.getFScore() < node2.getFScore()) {
-                    return -1; //node1 comes first due to lower fScore
-                } else if (node1.getFScore() > node2.getFScore()) {
-                    return 1;  //node2 comes first due to lower fScore
-                } else {
-                    return 0;  //equal priority
-                }
-            }
-        });
+    
         
-        //To store the nodes that have been searched
+    private List<Node> findPath(Node start, Node target) {
+        resetGraphData(start);
+        PriorityQueue<Node> toSearch = new PriorityQueue<>(Comparator.comparingDouble(Node::getFScore));
         Set<Node> closedSet = new HashSet<>();
         
-        start.setGScore(0); //gScore is the distance from start node to another node
-        start.setFScore(heuristic(start, target)); //fScore is the distance from start node to current node (hueristic distance to end node)
-        toSearch.add(start); //Add to node to priority queue
+        start.setGScore(0);
+        start.setFScore(heuristic(start, target));
+        toSearch.add(start);
         
         while (!toSearch.isEmpty()) {
-            Node current = toSearch.poll(); //Removes head of queue
+            Node current = toSearch.poll();
             
-            //If we have reached the end node
             if (current.equals(target)) {
-                return reconstructPath(current); //Go back on path
+                return reconstructPath(current);
             }
             
-            closedSet.add(current); //Add node to closed set to not search it again
+            closedSet.add(current);
             
             for (Edge edge : current.getEdges()) {
-                Node neighbor = edge.getTo(); /////////////////////Potential/////////////////////// 
-                                
-                //Skip if neighbour is already evaluated or is an occupied parking spot
-                //(unless it's our starting parking spot)
+                Node neighbor = edge.getTo();
+                
+                // Skip if neighbor is already evaluated or is an obstacle
                 if (closedSet.contains(neighbor) || 
-                    (neighbor.getType() == Node.NodeType.PARKING_SPOT && 
-                     !neighbor.equals(start) && 
-                     !neighbor.isAvailable())) {
+                    neighbor.getType() == Node.NodeType.PARKING_SPOT && 
+                    !neighbor.equals(start) && 
+                    !neighbor.isAvailable()) {
                     continue;
                 }
                 
                 double tentativeGScore = current.getGScore() + edge.getWeight();
                 
                 if (tentativeGScore < neighbor.getGScore()) {
-                    //Update node values
                     neighbor.setCameFrom(current);
                     neighbor.setGScore(tentativeGScore);
                     neighbor.setFScore(tentativeGScore + heuristic(neighbor, target));
                     
-                    //Manage queue - remove and re-add for priority update
-                    if (toSearch.contains(neighbor)) {
-                        toSearch.remove(neighbor); //This is inefficient in Java's PriorityQueue(FIX)
+                    if (!toSearch.contains(neighbor)) {
+                        toSearch.add(neighbor);
                     }
-                    toSearch.add(neighbor);
                 }
             }
         }
-        
         return Collections.emptyList();
     }
     
@@ -185,23 +197,86 @@ public class A_Star_Classification {
     
     //------------------------------------------For Display Purposes------------------------------------------
 
+//    /**
+//     * Calculates the actual driving distance from parking spot to exit for display purposes
+//     * @param parkingSpot - The starting parking spot
+//     * @param exits - List of all exits
+//     * @return The actual path distance in meters, or -1 if no path
+//     */
+//    public double calculateExitDistance(Node parkingSpot, List<Node> exits) {
+//        List<Node> path = findPathToNearestExit(parkingSpot, exits);//Find nearest exit (Series of nodes)
+//        if (path.isEmpty()) return -1;
+//        
+//        double distance = 0;
+//        for (int i = 0; i < path.size() - 1; i++) {
+//            distance += path.get(i).distanceTo(path.get(i + 1)); //Adding up node distances
+//        }
+//        return distance;
+//    }
+    
     /**
      * Calculates the actual driving distance from parking spot to exit for display purposes
      * @param parkingSpot - The starting parking spot
      * @param exits - List of all exits
-     * @return The actual path distance in meters, or -1 if no path
+     * @return The actual path distance in meters to the nearest exit, or Double.MAX_VALUE if no path found
      */
     public double calculateExitDistance(Node parkingSpot, List<Node> exits) {
-        List<Node> path = findPathToNearestExit(parkingSpot, exits);//Find nearest exit (Series of nodes)
-        if (path.isEmpty()) return -1;
-        
-        double distance = 0;
-        for (int i = 0; i < path.size() - 1; i++) {
-            distance += path.get(i).distanceTo(path.get(i + 1)); //Adding up node distances
+        if (parkingSpot == null || exits == null || exits.isEmpty()) {
+            System.out.println("No exits provided");
+            return -1;
         }
-        return distance;
+
+        double minDistance = Double.MAX_VALUE;
+        boolean pathFound = false;
+        
+        for (Node exit : exits) {
+            System.out.println("Checking path to exit at (" + exit.getX() + "," + exit.getY() + ")");
+            List<Node> path = findPath(parkingSpot, exit);
+            
+            if (!path.isEmpty()) {
+                pathFound = true;
+                double distance = 0;
+                for (int i = 0; i < path.size() - 1; i++) {
+                    distance += path.get(i).distanceTo(path.get(i + 1));
+                }
+                System.out.println("Path found with distance: " + distance);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            } else {
+                System.out.println("No path found to this exit");
+            }
+        }
+        
+        if (!pathFound) {
+            System.out.println("No path found to any exit");
+            // Try straight-line distance as fallback
+            Node nearestExit = findNearestExitByHeuristic(parkingSpot, exits);
+            double straightDistance = parkingSpot.distanceTo(nearestExit);
+            System.out.println("Using straight-line distance: " + straightDistance);
+            return straightDistance;
+        }
+        
+        return minDistance;
     }
 
+//    /**
+//     * Classifies a parking spot based on its distance to the nearest exit
+//     * @param parkingSpot The parking spot to classify
+//     * @param exits List of all exits
+//     * @return The distance classification
+//     */
+//    public Node.DistanceClassification classifySpot(Node parkingSpot, List<Node> exits) {
+//        double distance = calculateExitDistance(parkingSpot, exits);
+//        if (distance < 0) return Node.DistanceClassification.VERY_FAR;
+//        
+//        // Fixed thresholds for classifications based on actual distance
+//        if (distance <= 20) return Node.DistanceClassification.NEAR;
+//        if (distance <= 50) return Node.DistanceClassification.FAIRLY_NEAR;
+//        if (distance <= 100) return Node.DistanceClassification.FAR;
+//        return Node.DistanceClassification.VERY_FAR;
+//    }
+    
     /**
      * Classifies a parking spot based on its distance to the nearest exit
      * @param parkingSpot The parking spot to classify

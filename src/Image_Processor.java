@@ -13,8 +13,8 @@
 	import java.util.List;
 	
 	import javax.imageio.ImageIO;
-	
-	import javafx.util.Pair;
+
+import javafx.util.Pair;
 	
 	
 	/**
@@ -39,6 +39,27 @@
 		private List<Pair<Integer,Integer>> parkingCoords;
 		//The coordinates of the detected exits
 		private List<Pair<Integer,Integer>> exitCoords;
+		//The factor by which to scale the image down
+		private int scale = 5;
+		//The resolution of the Node grid
+		private int blockSize = 10;
+		//Threshold for maximum number of edge pixels before a section is no longer considered a road
+		private double edgePercentage = 0.005;
+		
+		/**
+		 * Parameterized constructor for the Image_Processor
+		 */
+		public Image_Processor(int scale, int blockSize, double edgePercentage) {
+			grid = null;
+			entrance = new Node(0,0,Node.NodeType.ENTRANCE,false);
+			entranceCoord = new Pair<>(0,0);
+			parkingCoords  = new ArrayList<>();
+			exitCoords = new ArrayList<>();
+			
+			this.scale = scale;
+			this.blockSize = blockSize;
+			this.edgePercentage = edgePercentage;
+		}
 		
 		/**
 		 * Default constructor for the Image_Processor
@@ -78,9 +99,6 @@
 	//			BufferedImage filtered = medianFilter(edge, i);
 				
 				//Create a grid based on the detected edges
-				int scale = 5;
-				int blockSize = 10;
-				double edgePercentage = 0.005;
 				int entranceX = entranceCoord.getKey();
 				int entranceY = entranceCoord.getValue();
 				grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
@@ -99,6 +117,7 @@
 		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
 		}
 		
+		
 		/**
 		 * Method to scan through the image and find blocks of set colours
 		 * If a block is found, find the central coordinate of that block and store it
@@ -107,7 +126,7 @@
 		 * @param green (0-255) The green value of the block to be found
 		 * @param blue (0-255) The blue value of the block to be found
 		 */
-		public void findSection(BufferedImage image, int red, int green, int blue) {
+		private void findSection(BufferedImage image, int red, int green, int blue) {
 			//Get the width/height of the image
 			int width = image.getWidth();
 		    int height = image.getHeight();
@@ -121,7 +140,7 @@
 		            	//Get the colour of the pixel at that position
 		                Color c = new Color(image.getRGB(x, y));
 		                //If it matches the specified RGB value
-		                if (c.getRed() == red && c.getGreen() == green && c.getBlue() == blue) {
+		                if (colorClose(c, red, green, blue, 3)) {
 		                    //Store the top left corner of the rectangle
 		                    int maxX = x;
 		                    int maxY = y;
@@ -146,16 +165,16 @@
 		                    int centerY = (y + maxY) / 2;
 		                    
 		                    //Case where the rectangle is green (entrance)
-		                    if (red == 0 && green == 255 && blue == 0) {
+		                    if (red == 0 && green >= 240 && blue == 0) {
 		                        entranceCoord = new Pair<>(centerX, centerY);
 		                        entrance = new Node(centerX, centerY, Node.NodeType.ENTRANCE, false);
-		                        System.out.println("Entrance coords: (" + centerX + "," + centerY + ")");
+		                        System.out.println("Entrance block coords: (" + centerX + "," + centerY + ")");
 		                    //Case where the rectangle is blue (parking)
-		                    } else if (red == 0 && green == 0 && blue == 255) {
+		                    } else if (red == 0 && green == 0 && blue >= 240) {
 		                        parkingCoords.add(new Pair<>(centerX, centerY));
-		                        System.out.println("Added parking coord: (" + centerX + "," + centerY + ")");
+		                        System.out.println("Added block parking coord: (" + centerX + "," + centerY + ")");
 		                    //Case where the rectangle is red (exit)
-		                    } else if (red == 255 && green == 0 && blue == 0) {
+		                    } else if (red >= 240 && green == 0 && blue == 0) {
 		                    	exitCoords.add(new Pair<>(centerX, centerY));
 		                    	System.out.println("Added new exit coord: (" + centerX + "," + centerY + ")");
 		                    }
@@ -165,6 +184,13 @@
 		    }
 		}
 		
+		
+		private boolean colorClose(Color c, int r, int g, int b, int tolerance) {
+		    return Math.abs(c.getRed() - r) <= tolerance &&
+		           Math.abs(c.getGreen() - g) <= tolerance &&
+		           Math.abs(c.getBlue() - b) <= tolerance;
+		}
+
 		/**
 		 * Method to create a visual representation of the Node[][] grid
 		 * Added mostly for debug purposes
@@ -203,6 +229,8 @@
 		            	colour = Color.BLUE; //Parking spot
 		            } else if (node.getType() == Node.NodeType.EXIT) {
 		                colour = Color.RED; //Exit
+		            } else if (node.getType() == Node.NodeType.PATH) {
+		            	colour = Color.ORANGE;
 		            } else {
 		            	colour = Color.ORANGE; //Default
 		            }
@@ -454,21 +482,41 @@
 			int entranceGridY = Math.round((float) entranceY/scale);
 			gridEntrance = new Pair<>(entranceGridX,entranceGridY);
 			
+		
 			//Create buffer area around the entrance so that it doesnt get blocked by edges
 			//Loop through the block of pixels
 			for (int dy = -5; dy <= 5; dy++) {
 			    for (int dx = -5; dx <= 5; dx++) {
 			        int nx = entranceGridX + dx;
 			        int ny = entranceGridY + dy;
-			        //Set area around the entrance to ROAD
+			        // Add additional bounds checking
 			        if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
 			            grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
+			        }
+			    }
+			}
+			
+			for(Pair<Integer,Integer> p : exitCoords) {
+				//Create buffer area around the exit
+				int exitGridX = Math.round((float) p.getKey() / scale);
+				int exitGridY = Math.round((float) p.getValue() / scale);
+			    for (int dy = -5; dy <= 5; dy++) {
+			        for (int dx = -5; dx <= 5; dx++) {
+			            int nx = exitGridX + dx;
+			            int ny = exitGridY + dy;
+			            if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
+			                grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
+			            }
 			        }
 			    }
 			}
 			//Loop through the image
 			for(int y = 0; y < height/scale; y++) {
 				for(int x = 0; x < width/scale; x++) {
+					// Make sure we don't go out of bounds
+			        if (y >= grid.length || x >= grid[0].length) {
+			            continue;
+			        }
 					int edgeCounter = 0;
 					//Check the number of edge pixels in a grid
 					for(int by = 0; by < blockSize; by++) {
@@ -499,25 +547,36 @@
 			grid[entranceGridY][entranceGridX] = entranceNode;
 			this.entrance = entranceNode;
 			System.out.println("Entrance Grid X: " + entranceGridX + ", Y: " + entranceGridY);
+
+			
 			//create and set the parking spots
 			for(Pair<Integer,Integer> p : parkingCoords) {
-				//Calculate the relative coordinates of each parking spot
-				int parkingGridX = Math.round((float) p.getKey()/scale);
-				int parkingGridY = Math.round((float) p.getValue()/scale);
-				grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
-				//Create edges for the parking spots
-				createEdges(grid);
-				System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
+			    //Calculate the relative coordinates of each parking spot
+			    int parkingGridX = Math.round((float) p.getKey()/scale);
+			    int parkingGridY = Math.round((float) p.getValue()/scale);
+			    // Add bounds checking
+			    if (parkingGridY >= 0 && parkingGridY < grid.length && 
+			        parkingGridX >= 0 && parkingGridX < grid[0].length) {
+			        grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
+			        //Create edges for the parking spots
+			        createEdges(grid);
+			        System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
+			    }
 			}
+			
 			//Create and set the exits
 			for(Pair<Integer,Integer> e : exitCoords) {
-				//calculate the relative exit coords
-				int exitGridX = Math.round((float) e.getKey()/scale);
-				int exitGridY = Math.round((float) e.getValue()/scale);
-				grid[exitGridY][exitGridX] = new Node(exitGridX,exitGridY,Node.NodeType.EXIT,false);
-				//create edges for the exit spots
-				createEdges(grid);
-				System.out.println("Exit Grid X: " + exitGridX + ", Y: " + exitGridY);
+			    //calculate the relative exit coords
+			    int exitGridX = Math.round((float) e.getKey()/scale);
+			    int exitGridY = Math.round((float) e.getValue()/scale);
+			    // Add bounds checking
+			    if (exitGridY >= 0 && exitGridY < grid.length && 
+			        exitGridX >= 0 && exitGridX < grid[0].length) {
+			        grid[exitGridY][exitGridX] = new Node(exitGridX,exitGridY,Node.NodeType.EXIT,false);
+			        //create edges for the exit spots
+			        createEdges(grid);
+			        System.out.println("Exit Grid X: " + exitGridX + ", Y: " + exitGridY);
+			    }
 			}
 			return grid;
 		}
@@ -570,6 +629,21 @@
 //			    }
 //			}
 		}
+		
+		
+		public void updateGrid(Node[][] grid, List<Node> path, String filePath) { 
+			for(Node n : path) {
+				
+					grid[n.getY()][n.getX()].setType(Node.NodeType.PATH);	
+			}
+			BufferedImage image = visualizeGrid(grid, scale);
+			try {
+				ImageIO.write(image, "png", new File(filePath));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	
 		/**
 		 * Getter for the grid coordinates of the entrance
@@ -587,25 +661,42 @@
 			return grid;
 		}
 		
+		
 		/**
 		 * Getter for the entrance Node
 		 * @return Node The node representing the entrance
 		 */
 		public Node getEntrance() {
-			return entrance;
+		    // Add bounds checking
+		    if (entrance.getY() >= 0 && entrance.getY() < grid.length && 
+		        entrance.getX() >= 0 && entrance.getX() < grid[0].length) {
+		        return grid[entrance.getY()][entrance.getX()];
+		    }
+		    return null;
 		}
+		
 		
 		/**
 		 * Getter for the list of exits
 		 * @return List<Node> A list of the exit nodes
 		 */
 		public List<Node> getExitList() {
-			List<Node> nodeList = new ArrayList<Node>();
-			for(Pair<Integer,Integer> p : exitCoords) {
-				Node exitNode = grid[p.getKey()][p.getValue()];
-				nodeList.add(exitNode);
-			}
-			return nodeList;
+		    List<Node> nodeList = new ArrayList<Node>();
+		    for(Pair<Integer,Integer> p : exitCoords) {
+		        int exitGridX = Math.round((float) p.getKey() / scale);
+		        int exitGridY = Math.round((float) p.getValue() / scale);
+		        
+		        // Add bounds checking
+		        if (exitGridY >= 0 && exitGridY < grid.length && 
+		            exitGridX >= 0 && exitGridX < grid[0].length) {
+		            
+		            Node exitNode = grid[exitGridY][exitGridX];
+		            if (exitNode != null) {  // Additional null check
+		                nodeList.add(exitNode);
+		            }
+		        }
+		    }
+		    return nodeList;
 		}
 		
 		/**
