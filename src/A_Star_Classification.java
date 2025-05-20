@@ -96,73 +96,7 @@ public class A_Star_Classification {
      * @return List of nodes that lead to the exit with respect to shortest path to exit 
      */
     
-    
-//    private List<Node> findPath(Node start, Node target) {
-//        resetGraphData(start); //Cleans node data between searches
-//
-//        //Custom Comparator, using Anonymous inner class
-//        PriorityQueue<Node> toSearch = new PriorityQueue<>(new Comparator<Node>() {
-//            @Override
-//            public int compare(Node node1, Node node2) {
-//                if (node1.getFScore() < node2.getFScore()) {
-//                    return -1; //node1 comes first due to lower fScore
-//                } else if (node1.getFScore() > node2.getFScore()) {
-//                    return 1;  //node2 comes first due to lower fScore
-//                } else {
-//                    return 0;  //equal priority
-//                }
-//            }
-//        });
-//        
-//        //To store the nodes that have been searched
-//        Set<Node> closedSet = new HashSet<>();
-//        
-//        start.setGScore(0); //gScore is the distance from start node to another node
-//        start.setFScore(heuristic(start, target)); //fScore is the distance from start node to current node (hueristic distance to end node)
-//        toSearch.add(start); //Add to node to priority queue
-//        
-//        while (!toSearch.isEmpty()) {
-//            Node current = toSearch.poll(); //Removes head of queue
-//            
-//            //If we have reached the end node
-//            if (current.equals(target)) {
-//                return reconstructPath(current); //Go back on path
-//            }
-//            
-//            closedSet.add(current); //Add node to closed set to not search it again
-//            
-//            for (Edge edge : current.getEdges()) {
-//                Node neighbor = edge.getTo(); /////////////////////Potential/////////////////////// 
-//                                
-//                //Skip if neighbour is already evaluated or is an occupied parking spot
-//                //(unless it's our starting parking spot)
-//                if (closedSet.contains(neighbor) || 
-//                    (neighbor.getType() == Node.NodeType.PARKING_SPOT && 
-//                     !neighbor.equals(start) && 
-//                     !neighbor.isAvailable())) {
-//                    continue;
-//                }
-//                
-//                double tentativeGScore = current.getGScore() + edge.getWeight();
-//                
-//                if (tentativeGScore < neighbor.getGScore()) {
-//                    //Update node values
-//                    neighbor.setCameFrom(current);
-//                    neighbor.setGScore(tentativeGScore);
-//                    neighbor.setFScore(tentativeGScore + heuristic(neighbor, target));
-//                    
-//                    //Manage queue - remove and re-add for priority update
-//                    if (toSearch.contains(neighbor)) {
-//                        toSearch.remove(neighbor); //This is inefficient in Java's PriorityQueue(FIX)
-//                    }
-//                    toSearch.add(neighbor);
-//                }
-//            }
-//        }
-//        
-//        return Collections.emptyList();
-//    }
-    
+        
     private List<Node> findPath(Node start, Node target) {
         resetGraphData(start);
         PriorityQueue<Node> toSearch = new PriorityQueue<>(Comparator.comparingDouble(Node::getFScore));

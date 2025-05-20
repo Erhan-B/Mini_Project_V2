@@ -117,66 +117,6 @@ import javafx.util.Pair;
 		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
 		}
 		
-//		public void processImage(String imageFilePath, String metaFilePath, int i) {
-//		    try {
-//		        // Check if files exist first
-//		        File imageFile = new File(imageFilePath);
-//		        File metaFile = new File(metaFilePath);
-//		        
-//		        if (!imageFile.exists()) {
-//		            throw new FileNotFoundException("Image file not found: " + imageFilePath);
-//		        }
-//		        if (!metaFile.exists()) {
-//		            throw new FileNotFoundException("Metadata file not found: " + metaFilePath);
-//		        }
-//
-//		        // Create output directory if it doesn't exist
-//		        new File("output").mkdirs();
-//
-//		        //Read the two image files
-//		        BufferedImage colour = ImageIO.read(imageFile);
-//		        BufferedImage metaImage = ImageIO.read(metaFile);
-//		        
-//		        //Scan through the images to find the entrances,parking spots, and exits and store them
-//		        findSection(metaImage, 0, 255, 0); //Entrance (Green)
-//		        findSection(metaImage, 0, 0, 255); //Parking spots (Blue)
-//		        findSection(metaImage, 255, 0, 0); //Exits (Red)
-//		        
-//		        //Generate a greyscale image
-//		        BufferedImage grey = greyScale(colour, i);
-//		        
-//		        //Detect edges on the greyscale image and create an image containing those edges
-//		        BufferedImage edge = edges(grey, 30, i);
-//		        
-//		        //Create a grid based on the detected edges
-//		        int scale = 5;
-//		        int blockSize = 10;
-//		        double edgePercentage = 0.005;
-//		        int entranceX = entranceCoord.getKey();
-//		        int entranceY = entranceCoord.getValue();
-//		        grid = createNodes(edge, scale, entranceX, entranceY, blockSize, edgePercentage, parkingCoords);
-//		        
-//		        if (grid == null) {
-//		            throw new Exception("Grid creation failed");
-//		        }
-//		        
-//		        //Create a visual representation of the Node[][] grid
-//		        BufferedImage visual = visualizeGrid(grid, scale);
-//		        File outputfile = new File("output/grid_result_" + i + ".png");
-//		        ImageIO.write(visual, "png", outputfile);
-//		        
-//		    } catch (FileNotFoundException fnf) {
-//		        System.err.println("Image Processor: File not found: " + fnf.getMessage());
-//		        throw new RuntimeException(fnf);
-//		    } catch (IOException e) {
-//		        System.err.println("Image Processor: IO Error: " + e.getMessage());
-//		        throw new RuntimeException(e);
-//		    } catch (Exception e) {
-//		        System.err.println("Image Processor: Error: " + e.getMessage());
-//		        throw new RuntimeException(e);
-//		    }
-//		    System.out.println("Grid visualization saved as grid_result" + i + ".png");
-//		}
 		
 		/**
 		 * Method to scan through the image and find blocks of set colours
@@ -542,20 +482,7 @@ import javafx.util.Pair;
 			int entranceGridY = Math.round((float) entranceY/scale);
 			gridEntrance = new Pair<>(entranceGridX,entranceGridY);
 			
-//			//Create buffer area around the entrance so that it doesnt get blocked by edges
-//			//Loop through the block of pixels
-//			for (int dy = -5; dy <= 5; dy++) {
-//			    for (int dx = -5; dx <= 5; dx++) {
-//			        int nx = entranceGridX + dx;
-//			        int ny = entranceGridY + dy;
-//			        //Set area around the entrance to ROAD
-//			        if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
-//			            grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
-//			        }
-//			        
-//			    }
-//			}
-			
+		
 			//Create buffer area around the entrance so that it doesnt get blocked by edges
 			//Loop through the block of pixels
 			for (int dy = -5; dy <= 5; dy++) {
@@ -621,16 +548,6 @@ import javafx.util.Pair;
 			this.entrance = entranceNode;
 			System.out.println("Entrance Grid X: " + entranceGridX + ", Y: " + entranceGridY);
 
-			//create and set the parking spots
-//			for(Pair<Integer,Integer> p : parkingCoords) {
-//				//Calculate the relative coordinates of each parking spot
-//				int parkingGridX = Math.round((float) p.getKey()/scale);
-//				int parkingGridY = Math.round((float) p.getValue()/scale);
-//				grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
-//				//Create edges for the parking spots
-//				createEdges(grid);
-//				System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
-//			}
 			
 			//create and set the parking spots
 			for(Pair<Integer,Integer> p : parkingCoords) {
@@ -646,32 +563,6 @@ import javafx.util.Pair;
 			        System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
 			    }
 			}
-			//Create and set the exits
-//			for(Pair<Integer,Integer> e : exitCoords) {
-//				//calculate the relative exit coords
-//				int exitGridX = Math.round((float) e.getKey()/scale);
-//				int exitGridY = Math.round((float) e.getValue()/scale);
-//				grid[exitGridY][exitGridX] = new Node(exitGridX,exitGridY,Node.NodeType.EXIT,false);
-//				//create edges for the exit spots
-//				createEdges(grid);
-//				System.out.println("Exit Grid X: " + exitGridX + ", Y: " + exitGridY);
-//			}
-			
-//			for(Pair<Integer,Integer> p : exitCoords) {
-//			    //Create buffer area around the exit
-//			    int exitGridX = Math.round((float) p.getKey() / scale);
-//			    int exitGridY = Math.round((float) p.getValue() / scale);
-//			    for (int dy = -5; dy <= 5; dy++) {
-//			        for (int dx = -5; dx <= 5; dx++) {
-//			            int nx = exitGridX + dx;
-//			            int ny = exitGridY + dy;
-//			            // Add additional bounds checking
-//			            if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
-//			                grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
-//			            }
-//			        }
-//			    }
-//			}
 			
 			//Create and set the exits
 			for(Pair<Integer,Integer> e : exitCoords) {
@@ -739,26 +630,6 @@ import javafx.util.Pair;
 //			}
 		}
 		
-//		public BufferedImage displayPath(String imagePath, List<Node> path, Color c) {
-////			BufferedImage image = null;
-////			try {
-////				image = ImageIO.read(new File(imagePath));
-////			} catch (IOException ex) {
-////				ex.printStackTrace();
-////			}
-////			BufferedImage retImage = image;
-////			for(Node n : path) {
-////				image.setRGB(n.getX(), n.getY(), c.getRGB());
-////			}
-////			try {
-////				ImageIO.write(retImage, "png", new File(imagePath));
-////			} catch (IOException e) {
-////				// TODO Auto-generated catch block
-////				e.printStackTrace();
-////			}
-//			
-//			return retImage;
-//		}
 		
 		public void updateGrid(Node[][] grid, List<Node> path, String filePath) { 
 			for(Node n : path) {
@@ -790,13 +661,6 @@ import javafx.util.Pair;
 			return grid;
 		}
 		
-//		/**
-//		 * Getter for the entrance Node
-//		 * @return Node The node representing the entrance
-//		 */
-//		public Node getEntrance() {
-//			return entrance;
-//		}
 		
 		/**
 		 * Getter for the entrance Node
@@ -811,20 +675,6 @@ import javafx.util.Pair;
 		    return null;
 		}
 		
-//		/**
-//		 * Getter for the list of exits
-//		 * @return List<Node> A list of the exit nodes
-//		 */
-//		public List<Node> getExitList() {
-//			List<Node> nodeList = new ArrayList<Node>();
-//			for(Pair<Integer,Integer> p : exitCoords) {
-//				int exitGridX = Math.round((float) p.getKey() / scale);
-//				int exitGridY = Math.round((float) p.getValue() / scale);
-//				Node exitNode = grid[exitGridY][exitGridX];
-//				nodeList.add(exitNode);
-//			}
-//			return nodeList;
-//		}
 		
 		/**
 		 * Getter for the list of exits
