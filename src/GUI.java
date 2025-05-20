@@ -273,6 +273,56 @@ public class GUI extends Application {
 //        }
 //    }
     
+//    private void updateClassificationInfo() {
+//        if (imageProcessor == null || imageProcessor.getGrid() == null) {
+//            distanceLabel.setText("Distance to exit: Error");
+//            classificationLabel.setText("Classification: Error - No grid");
+//            return;
+//        }
+//        
+//        try {
+//            // Get closest parking spot
+//            Node entrance = imageProcessor.getEntrance();
+//            if (entrance == null) {
+//                distanceLabel.setText("Distance to exit: Error");
+//                classificationLabel.setText("Classification: Error - No entrance");
+//                return;
+//            }
+//            
+//            Dijkstra dijkstra = new Dijkstra(imageProcessor.getGrid(), entrance);
+//            dijkstra.Compute();
+//            Node closestParking = dijkstra.getClosestParking();
+//            
+//            if (closestParking == null) {
+//                distanceLabel.setText("Distance to exit: -");
+//                classificationLabel.setText("Classification: No parking found");
+//                return;
+//            }
+//            
+//            List<Node> exits = imageProcessor.getExitList();
+//            if (exits.isEmpty()) {
+//                distanceLabel.setText("Distance to exit: Error");
+//                classificationLabel.setText("Classification: Error - No exits");
+//                return;
+//            }
+//            
+//            // Calculate classification
+//            A_Star_Classification aStar = new A_Star_Classification();
+//            double distance = aStar.calculateExitDistance(closestParking, exits);
+//            Node.DistanceClassification classification = aStar.classifySpot(closestParking, exits);
+//            
+//            // Update labels
+//            classificationLabel.setText("Classification: " + classification.getLabel());
+//            classificationLabel.setStyle("-fx-text-fill: " + getColorHex(classification.getColor()));
+//            distanceLabel.setText(String.format("Distance to exit: %.2f units", distance));
+//            
+//        } catch (Exception e) {
+//            distanceLabel.setText("Distance to exit: Error");
+//            classificationLabel.setText("Classification: Error in calculation");
+//            e.printStackTrace();
+//        }
+//    }
+    
     private void updateClassificationInfo() {
         if (imageProcessor == null || imageProcessor.getGrid() == null) {
             distanceLabel.setText("Distance to exit: Error");
@@ -281,7 +331,6 @@ public class GUI extends Application {
         }
         
         try {
-            // Get closest parking spot
             Node entrance = imageProcessor.getEntrance();
             if (entrance == null) {
                 distanceLabel.setText("Distance to exit: Error");
@@ -306,9 +355,37 @@ public class GUI extends Application {
                 return;
             }
             
-            // Calculate classification
+//            A_Star_Classification aStar = new A_Star_Classification();
+//            double distance = aStar.calculateExitDistance(closestParking, exits);
+//            
+//            // Handle case where no path was found
+//            if (distance < 0) {
+//                distanceLabel.setText("Distance to exit: No path found");
+//                classificationLabel.setText("Classification: Unreachable");
+//                classificationLabel.setStyle("-fx-text-fill: #F44336"); // Red color
+//                return;
+//            }
+            
             A_Star_Classification aStar = new A_Star_Classification();
             double distance = aStar.calculateExitDistance(closestParking, exits);
+            
+            if (distance < 0) {
+                // Try using Dijkstra's path as fallback
+                List<Node> dijkstraPath = dijkstra.getPathClosest();
+                if (!dijkstraPath.isEmpty()) {
+                    distance = 0;
+                    for (int i = 0; i < dijkstraPath.size() - 1; i++) {
+                        distance += dijkstraPath.get(i).distanceTo(dijkstraPath.get(i + 1));
+                    }
+                    distanceLabel.setText(String.format("Distance to exit: ~%.2f units (approx)", distance));
+                } else {
+                    distanceLabel.setText("Distance to exit: No path found");
+                }
+                classificationLabel.setText("Classification: Unreachable");
+                classificationLabel.setStyle("-fx-text-fill: #F44336");
+                return;
+            }
+            
             Node.DistanceClassification classification = aStar.classifySpot(closestParking, exits);
             
             // Update labels
