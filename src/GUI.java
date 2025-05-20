@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.io.File;
+import java.util.List;
 
 public class GUI extends Application {
     private ImageView originalImageView;
@@ -233,31 +234,82 @@ public class GUI extends Application {
 //        }
 //    }
 
+//    private void updateClassificationInfo() {
+//        if (imageProcessor == null || imageProcessor.getGrid() == null) {
+//        	distanceLabel.setText("Distance to exit: Error");
+//            classificationLabel.setText("Classification: Error - No grid");
+//            
+//            return;
+//        }
+//        
+//        try {
+//            // Get closest parking spot
+//            Dijkstra dijkstra = new Dijkstra(imageProcessor.getGrid(), imageProcessor.getEntrance());
+//            dijkstra.Compute();
+//            Node closestParking = dijkstra.getClosestParking();
+//            
+//            if (closestParking == null) {
+//            	distanceLabel.setText("Distance to exit: -");
+//                classificationLabel.setText("Classification: No parking found");
+//                
+//                return;
+//            }
+//            
+//            // Calculate classification
+//            A_Star_Classification aStar = new A_Star_Classification();
+//            double distance = aStar.calculateExitDistance(closestParking, imageProcessor.getExitList());
+//            Node.DistanceClassification classification = aStar.classifySpot(closestParking, imageProcessor.getExitList());
+//            
+//            // Update labels
+//            classificationLabel.setText("Classification: " + classification.getLabel());
+//            classificationLabel.setStyle("-fx-text-fill: " + getColorHex(classification.getColor()));
+//            distanceLabel.setText(String.format("Distance to exit: %.2f units", distance));
+//            
+//        } catch (Exception e) {
+//        	distanceLabel.setText("Distance to exit: Error");
+//            classificationLabel.setText("Classification: Error in calculation");
+//            
+//            e.printStackTrace();
+//        }
+//    }
+    
     private void updateClassificationInfo() {
         if (imageProcessor == null || imageProcessor.getGrid() == null) {
-        	distanceLabel.setText("Distance to exit: Error");
+            distanceLabel.setText("Distance to exit: Error");
             classificationLabel.setText("Classification: Error - No grid");
-            
             return;
         }
         
         try {
             // Get closest parking spot
-            Dijkstra dijkstra = new Dijkstra(imageProcessor.getGrid(), imageProcessor.getEntrance());
+            Node entrance = imageProcessor.getEntrance();
+            if (entrance == null) {
+                distanceLabel.setText("Distance to exit: Error");
+                classificationLabel.setText("Classification: Error - No entrance");
+                return;
+            }
+            
+            Dijkstra dijkstra = new Dijkstra(imageProcessor.getGrid(), entrance);
             dijkstra.Compute();
             Node closestParking = dijkstra.getClosestParking();
             
             if (closestParking == null) {
-            	distanceLabel.setText("Distance to exit: -");
+                distanceLabel.setText("Distance to exit: -");
                 classificationLabel.setText("Classification: No parking found");
-                
+                return;
+            }
+            
+            List<Node> exits = imageProcessor.getExitList();
+            if (exits.isEmpty()) {
+                distanceLabel.setText("Distance to exit: Error");
+                classificationLabel.setText("Classification: Error - No exits");
                 return;
             }
             
             // Calculate classification
             A_Star_Classification aStar = new A_Star_Classification();
-            double distance = aStar.calculateExitDistance(closestParking, imageProcessor.getExitList());
-            Node.DistanceClassification classification = aStar.classifySpot(closestParking, imageProcessor.getExitList());
+            double distance = aStar.calculateExitDistance(closestParking, exits);
+            Node.DistanceClassification classification = aStar.classifySpot(closestParking, exits);
             
             // Update labels
             classificationLabel.setText("Classification: " + classification.getLabel());
@@ -265,9 +317,8 @@ public class GUI extends Application {
             distanceLabel.setText(String.format("Distance to exit: %.2f units", distance));
             
         } catch (Exception e) {
-        	distanceLabel.setText("Distance to exit: Error");
+            distanceLabel.setText("Distance to exit: Error");
             classificationLabel.setText("Classification: Error in calculation");
-            
             e.printStackTrace();
         }
     }

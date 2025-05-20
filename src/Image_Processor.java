@@ -542,17 +542,30 @@ import javafx.util.Pair;
 			int entranceGridY = Math.round((float) entranceY/scale);
 			gridEntrance = new Pair<>(entranceGridX,entranceGridY);
 			
+//			//Create buffer area around the entrance so that it doesnt get blocked by edges
+//			//Loop through the block of pixels
+//			for (int dy = -5; dy <= 5; dy++) {
+//			    for (int dx = -5; dx <= 5; dx++) {
+//			        int nx = entranceGridX + dx;
+//			        int ny = entranceGridY + dy;
+//			        //Set area around the entrance to ROAD
+//			        if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
+//			            grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
+//			        }
+//			        
+//			    }
+//			}
+			
 			//Create buffer area around the entrance so that it doesnt get blocked by edges
 			//Loop through the block of pixels
 			for (int dy = -5; dy <= 5; dy++) {
 			    for (int dx = -5; dx <= 5; dx++) {
 			        int nx = entranceGridX + dx;
 			        int ny = entranceGridY + dy;
-			        //Set area around the entrance to ROAD
+			        // Add additional bounds checking
 			        if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
 			            grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
 			        }
-			        
 			    }
 			}
 			
@@ -573,6 +586,10 @@ import javafx.util.Pair;
 			//Loop through the image
 			for(int y = 0; y < height/scale; y++) {
 				for(int x = 0; x < width/scale; x++) {
+					// Make sure we don't go out of bounds
+			        if (y >= grid.length || x >= grid[0].length) {
+			            continue;
+			        }
 					int edgeCounter = 0;
 					//Check the number of edge pixels in a grid
 					for(int by = 0; by < blockSize; by++) {
@@ -603,25 +620,72 @@ import javafx.util.Pair;
 			grid[entranceGridY][entranceGridX] = entranceNode;
 			this.entrance = entranceNode;
 			System.out.println("Entrance Grid X: " + entranceGridX + ", Y: " + entranceGridY);
+
+			//create and set the parking spots
+//			for(Pair<Integer,Integer> p : parkingCoords) {
+//				//Calculate the relative coordinates of each parking spot
+//				int parkingGridX = Math.round((float) p.getKey()/scale);
+//				int parkingGridY = Math.round((float) p.getValue()/scale);
+//				grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
+//				//Create edges for the parking spots
+//				createEdges(grid);
+//				System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
+//			}
+			
 			//create and set the parking spots
 			for(Pair<Integer,Integer> p : parkingCoords) {
-				//Calculate the relative coordinates of each parking spot
-				int parkingGridX = Math.round((float) p.getKey()/scale);
-				int parkingGridY = Math.round((float) p.getValue()/scale);
-				grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
-				//Create edges for the parking spots
-				createEdges(grid);
-				System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
+			    //Calculate the relative coordinates of each parking spot
+			    int parkingGridX = Math.round((float) p.getKey()/scale);
+			    int parkingGridY = Math.round((float) p.getValue()/scale);
+			    // Add bounds checking
+			    if (parkingGridY >= 0 && parkingGridY < grid.length && 
+			        parkingGridX >= 0 && parkingGridX < grid[0].length) {
+			        grid[parkingGridY][parkingGridX] = new Node(parkingGridX,parkingGridY,Node.NodeType.PARKING_SPOT,true);
+			        //Create edges for the parking spots
+			        createEdges(grid);
+			        System.out.println("Parking Grid X: " + parkingGridX + ", Y: " + parkingGridY);
+			    }
 			}
 			//Create and set the exits
+//			for(Pair<Integer,Integer> e : exitCoords) {
+//				//calculate the relative exit coords
+//				int exitGridX = Math.round((float) e.getKey()/scale);
+//				int exitGridY = Math.round((float) e.getValue()/scale);
+//				grid[exitGridY][exitGridX] = new Node(exitGridX,exitGridY,Node.NodeType.EXIT,false);
+//				//create edges for the exit spots
+//				createEdges(grid);
+//				System.out.println("Exit Grid X: " + exitGridX + ", Y: " + exitGridY);
+//			}
+			
+//			for(Pair<Integer,Integer> p : exitCoords) {
+//			    //Create buffer area around the exit
+//			    int exitGridX = Math.round((float) p.getKey() / scale);
+//			    int exitGridY = Math.round((float) p.getValue() / scale);
+//			    for (int dy = -5; dy <= 5; dy++) {
+//			        for (int dx = -5; dx <= 5; dx++) {
+//			            int nx = exitGridX + dx;
+//			            int ny = exitGridY + dy;
+//			            // Add additional bounds checking
+//			            if (nx >= 0 && ny >= 0 && ny < grid.length && nx < grid[0].length) {
+//			                grid[ny][nx] = new Node(nx, ny, Node.NodeType.ROAD, false);
+//			            }
+//			        }
+//			    }
+//			}
+			
+			//Create and set the exits
 			for(Pair<Integer,Integer> e : exitCoords) {
-				//calculate the relative exit coords
-				int exitGridX = Math.round((float) e.getKey()/scale);
-				int exitGridY = Math.round((float) e.getValue()/scale);
-				grid[exitGridY][exitGridX] = new Node(exitGridX,exitGridY,Node.NodeType.EXIT,false);
-				//create edges for the exit spots
-				createEdges(grid);
-				System.out.println("Exit Grid X: " + exitGridX + ", Y: " + exitGridY);
+			    //calculate the relative exit coords
+			    int exitGridX = Math.round((float) e.getKey()/scale);
+			    int exitGridY = Math.round((float) e.getValue()/scale);
+			    // Add bounds checking
+			    if (exitGridY >= 0 && exitGridY < grid.length && 
+			        exitGridX >= 0 && exitGridX < grid[0].length) {
+			        grid[exitGridY][exitGridX] = new Node(exitGridX,exitGridY,Node.NodeType.EXIT,false);
+			        //create edges for the exit spots
+			        createEdges(grid);
+			        System.out.println("Exit Grid X: " + exitGridX + ", Y: " + exitGridY);
+			    }
 			}
 			return grid;
 		}
@@ -726,27 +790,63 @@ import javafx.util.Pair;
 			return grid;
 		}
 		
+//		/**
+//		 * Getter for the entrance Node
+//		 * @return Node The node representing the entrance
+//		 */
+//		public Node getEntrance() {
+//			return entrance;
+//		}
+		
 		/**
 		 * Getter for the entrance Node
 		 * @return Node The node representing the entrance
 		 */
 		public Node getEntrance() {
-			return entrance;
+		    // Add bounds checking
+		    if (entrance.getY() >= 0 && entrance.getY() < grid.length && 
+		        entrance.getX() >= 0 && entrance.getX() < grid[0].length) {
+		        return grid[entrance.getY()][entrance.getX()];
+		    }
+		    return null;
 		}
+		
+//		/**
+//		 * Getter for the list of exits
+//		 * @return List<Node> A list of the exit nodes
+//		 */
+//		public List<Node> getExitList() {
+//			List<Node> nodeList = new ArrayList<Node>();
+//			for(Pair<Integer,Integer> p : exitCoords) {
+//				int exitGridX = Math.round((float) p.getKey() / scale);
+//				int exitGridY = Math.round((float) p.getValue() / scale);
+//				Node exitNode = grid[exitGridY][exitGridX];
+//				nodeList.add(exitNode);
+//			}
+//			return nodeList;
+//		}
 		
 		/**
 		 * Getter for the list of exits
 		 * @return List<Node> A list of the exit nodes
 		 */
 		public List<Node> getExitList() {
-			List<Node> nodeList = new ArrayList<Node>();
-			for(Pair<Integer,Integer> p : exitCoords) {
-				int exitGridX = Math.round((float) p.getKey() / scale);
-				int exitGridY = Math.round((float) p.getValue() / scale);
-				Node exitNode = grid[exitGridY][exitGridX];
-				nodeList.add(exitNode);
-			}
-			return nodeList;
+		    List<Node> nodeList = new ArrayList<Node>();
+		    for(Pair<Integer,Integer> p : exitCoords) {
+		        int exitGridX = Math.round((float) p.getKey() / scale);
+		        int exitGridY = Math.round((float) p.getValue() / scale);
+		        
+		        // Add bounds checking
+		        if (exitGridY >= 0 && exitGridY < grid.length && 
+		            exitGridX >= 0 && exitGridX < grid[0].length) {
+		            
+		            Node exitNode = grid[exitGridY][exitGridX];
+		            if (exitNode != null) {  // Additional null check
+		                nodeList.add(exitNode);
+		            }
+		        }
+		    }
+		    return nodeList;
 		}
 		
 		/**

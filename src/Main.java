@@ -44,5 +44,11 @@ public class Main {
 			dijkstra3.Compute();
 			processor3.updateGrid(processor3.getGrid(), dijkstra3.getPathClosest(), "output/image_0_path.png");
 			
+			Image_Processor processor4 = new Image_Processor(5, 3, 0.05);
+			processor4.processImage("data/image_2.jpg", "data/image_2_meta.jpg", 1);
+			Dijkstra dijkstra4 = new Dijkstra(processor4.getGrid(), processor4.getEntrance());
+			dijkstra4.Compute();
+			processor4.updateGrid(processor4.getGrid(), dijkstra4.getPathClosest(), "output/image_2_path.png");
+			
     }
 }
