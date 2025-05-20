@@ -38,5 +38,11 @@ public class Main {
 //			    }
 //			    System.out.println();
 			
+			Image_Processor processor3 = new Image_Processor(5, 3, 0.05);
+			processor3.processImage("data/image_0.jpg", "data/image_0_meta.jpg", 1);
+			Dijkstra dijkstra3 = new Dijkstra(processor3.getGrid(), processor3.getEntrance());
+			dijkstra3.Compute();
+			processor3.updateGrid(processor3.getGrid(), dijkstra3.getPathClosest(), "output/image_0_path.png");
+			
     }
 }

@@ -66,7 +66,7 @@ public class GUI extends Application {
         
         // Set button actions
         selectImageBtn.setOnAction(e -> selectImage());
-        processBtn.setOnAction(e -> processImage());
+        processBtn.setOnAction(e -> displayProcessedImages());
         resetBtn.setOnAction(e -> reset());
     }
 
@@ -149,7 +149,37 @@ public class GUI extends Application {
         }
     }
 
-    private void processImage() {
+//    private void processImage() {
+//        if (selectedFile == null) return;
+//        
+//        try {
+//            // Disable process button during processing
+//            processBtn.setDisable(true);
+//            
+//            // Process the image
+//            imageProcessor = new Image_Processor();
+//            String fileName = selectedFile.getName();
+//            String metaFileName = fileName.replace(".jpg", "_meta.jpg");
+//            
+//            imageProcessor.processImage(
+//                "data/" + fileName,
+//                "data/" + metaFileName,
+//                0); // Using 0 as index since we're processing single image
+//            
+//            // Display processed images
+//            displayProcessedImages();
+//            
+//            // Update classification info
+//            updateClassificationInfo();
+//            
+//        } catch (Exception e) {
+//            showAlert("Processing Error", "Failed to process image: " + e.getMessage());
+//            e.printStackTrace();
+//            reset();
+//        }
+//    }
+    
+    private void displayProcessedImages() {
         if (selectedFile == null) return;
         
         try {
@@ -158,16 +188,26 @@ public class GUI extends Application {
             
             // Process the image
             imageProcessor = new Image_Processor();
-            String fileName = selectedFile.getName();
-            String metaFileName = fileName.replace(".jpg", "_meta.jpg");
+            String fileName = selectedFile.getName(); // Get the selected file name
+            String baseName = fileName.substring(0, fileName.lastIndexOf(".")); // Get the base name without extension
             
+            System.out.println(fileName + baseName);
+            
+            //String greyScaleFile = "output/" + baseName + "_greyscale.png";
+            //String edgeFile = "output/" + baseName + "_edge.png";
+            String gridFile = "output/" + baseName + "_path.png"; // Assuming the grid image is named with _path
+
             imageProcessor.processImage(
-                "data/" + fileName,
-                "data/" + metaFileName,
+                "data/" + fileName, // Original image
+                "data/" + baseName + "_meta.jpg", // Assuming metadata follows a similar naming convention
                 0); // Using 0 as index since we're processing single image
             
-            // Display processed images
-            displayProcessedImages();
+            // Display processed images dynamically
+            //greyScaleImageView.setImage(new Image(new File(greyScaleFile).toURI().toString()));
+            //edgeImageView.setImage(new Image(new File(edgeFile).toURI().toString()));
+            greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
+            edgeImageView.setImage(new Image(new File("output/image_0_edge.png").toURI().toString()));
+            gridImageView.setImage(new Image(new File(gridFile).toURI().toString()));
             
             // Update classification info
             updateClassificationInfo();
@@ -179,18 +219,19 @@ public class GUI extends Application {
         }
     }
 
-    private void displayProcessedImages() {
-        try {
-            // Load and display each processed image
-            greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
-            edgeImageView.setImage(new Image(new File("output/image_0_edge.png").toURI().toString()));
-//            gridImageView.setImage(new Image(new File("output/grid_result_0.png").toURI().toString()));
-            gridImageView.setImage(new Image(new File("output/image_1_path.png").toURI().toString()));
-            
-        } catch (Exception e) {
-            showAlert("Error", "Could not load processed images: " + e.getMessage());
-        }
-    }
+
+//    private void displayProcessedImages() {
+//        try {
+//            // Load and display each processed image
+//            greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
+//            edgeImageView.setImage(new Image(new File("output/image_0_edge.png").toURI().toString()));
+//            gridImageView.setImage(new Image(new File("output/image_0_path.png").toURI().toString()));
+////            gridImageView.setImage(new Image(new File("output/image_1_path.png").toURI().toString()));
+//            //trying to display the image with the path
+//        } catch (Exception e) {
+//            showAlert("Error", "Could not load processed images: " + e.getMessage());
+//        }
+//    }
 
     private void updateClassificationInfo() {
         if (imageProcessor == null || imageProcessor.getGrid() == null) {
