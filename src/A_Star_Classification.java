@@ -1,7 +1,11 @@
 import java.util.*;
 
 /**
- * A* Pathfinder specialized for parking spot to exit navigation
+ * @author - Kallan SS, 222178219
+ * This class implements the A* pathfinding algorithm to find optimal paths from 
+ * parking spots to exits in a parking lot. It calculates distances, classifies 
+ * parking spots based on their proximity to exits, and handles edge cases 
+ * such as unavailable spots and multiple exits.
  */
 public class A_Star_Classification {
 	
@@ -72,6 +76,11 @@ public class A_Star_Classification {
     /**
      * Reconstructs the path from target node back to start node
      * by following the 'cameFrom' references, then reverses it
+     * 
+     * This method works backwards from the target node to the start node by following
+     * the parent references established during the A* search. It then reverses this
+     * path to provide the correct start-to-goal order
+     * 
      * @param target The end node of the path (usually the exit)
      * @return Ordered list of nodes from start to target
      */
@@ -91,12 +100,18 @@ public class A_Star_Classification {
 
     /**
      * Finds path from start to target using A* algorithm
+     * 
+     * A* search algorithm implementation that:
+     * 1. Uses a priority queue to always expand the most promising node
+     * 2. Tracks already explored nodes to avoid revisiting them
+     * 3. For each node, calculates both the cost to reach it (gScore) and the 
+     *    estimated total cost to the exit (fScore = gScore + heuristic)
+     * 4. Avoids occupied parking spots unless they're the starting point
+     * 
      * @param start - The starting parking sport
      * @param target - The target exit we looking to reach (nearest exit)
      * @return List of nodes that lead to the exit with respect to shortest path to exit 
      */
-    
-        
     private List<Node> findPath(Node start, Node target) {
         resetGraphData(start);
         PriorityQueue<Node> toSearch = new PriorityQueue<>(Comparator.comparingDouble(Node::getFScore));
@@ -144,6 +159,11 @@ public class A_Star_Classification {
     
     /**
      * Resets all pathfinding data in nodes reachable from the starting node
+     * 
+     * Uses breadth-first search (BFS) to visit all nodes connected to the start node
+     * and reset their A* specific data (gScore, fScore, cameFrom) to default values.
+     * This ensures that multiple path calculations can be done without disturbance.
+     * 
      * @param startNode The node where pathfinding begins (parking spot)
      */
     private void resetGraphData(Node startNode) {
@@ -175,6 +195,11 @@ public class A_Star_Classification {
 
     /**
      * Finds the nearest exit by straight line distance - h (Multiple Exits?)
+     * 
+     * This method is a simple optimization that finds the exit with the shortest
+     * straight-line distance to the parking spot. It's used as
+     * a first approximation before calculating actual path distances.
+     * 
      * @param parkingSpot - Starting node
      * @param exits - list of potential ending nodes (Multiples exits?)
      * @return the nearest exit
@@ -216,6 +241,12 @@ public class A_Star_Classification {
     
     /**
      * Calculates the actual driving distance from parking spot to exit for display purposes
+     * 
+     * This method calculates and returns the actual driving distance to the nearest exit,
+     * checking each exit individually and keeping track of which path is shortest.
+     * As a fallback, if no path can be found to any exit, it returns the straight-line
+     * distance to the nearest exit as an estimate.
+     * 
      * @param parkingSpot - The starting parking spot
      * @param exits - List of all exits
      * @return The actual path distance in meters to the nearest exit, or Double.MAX_VALUE if no path found
