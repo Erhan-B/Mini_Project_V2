@@ -4,9 +4,11 @@
  */
 
 /**
- * GUI is a JavaFX application for visualizing parking lot image processing.
+ * GUI is a JavaFX application for visualizing parking lot image processing of the path to the closest 
+ * available parking spot to the entrance.
  * It allows users to select an image, process it using the Image_Processor class,
- * and display intermediate and final results including classification and distance information.
+ * and display intermediate and final results including classification (using A*) 
+ * and distance information to the exit.
  */
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -40,22 +42,22 @@ public class GUI extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
-        // Initializing the UI components
+        //Initializing the UI components
         initializeComponents();
         
-        // Set up layout components
+        //Setting up layout components
         HBox buttonBox = createTopButtonBox();
         GridPane imageGrid = createImageGrid();
         VBox infoBox = createInfoBox();
         
-        // Main layout container and setting its positions
+        //Main layout container and setting its positions
         BorderPane root = new BorderPane();
         root.setTop(buttonBox);
         root.setCenter(imageGrid);
         root.setRight(infoBox);
         root.setPadding(new Insets(10));
         
-        // Set up and display the scene
+        //Set up and display the scene
         Scene scene = new Scene(root, 1200, 800);
         primaryStage.setTitle("Parking Lot Image Processor");
         primaryStage.setScene(scene);
@@ -63,33 +65,34 @@ public class GUI extends Application {
     }
 
     /**
-     * Initializes all GUI components and their actions.
+     * Initializes all GUI components and their actions
      */
     private void initializeComponents() {
-        // Setting up image views for displaying the steps 
+        //Setting up image views for displaying the steps of the processing
+    	
         originalImageView = createImageView();
         greyScaleImageView = createImageView();
         edgeImageView = createImageView();
         gridImageView = createImageView();
         
-        // Setting up control buttons for user interaction 
+        //Setting up the buttons for controls for user interaction 
         selectImageBtn = new Button("Select Image");
         processBtn = new Button("Process Image");
-        processBtn.setDisable(true); // Disabled until image is selected
+        processBtn.setDisable(true); //the process button is disabled until image is selected
         resetBtn = new Button("Reset");
         
-        // Set up info labels
+        //Set up info labels
         distanceLabel = new Label("Distance to exit: -");
         classificationLabel = new Label("Classification: Not processed");
         
-        // Assign button event handlers
+        //Assign button event handlers 
         selectImageBtn.setOnAction(e -> selectImage());
         processBtn.setOnAction(e -> displayProcessedImages());
         resetBtn.setOnAction(e -> reset());
     }
 
     /**
-     * Creates a horizontal box for the top control buttons.
+     * Creates a horizontal box for the top control buttons
      * @return configured HBox
      */
     private HBox createTopButtonBox() {
@@ -100,7 +103,7 @@ public class GUI extends Application {
     }
 
     /**
-     * Creates a grid to display image views.
+     * Creates a grid to display image views
      * @return configured GridPane
      */
     private GridPane createImageGrid() {
@@ -110,7 +113,7 @@ public class GUI extends Application {
         grid.setVgap(10);
         grid.setPadding(new Insets(10));
         
-        // Add image views with titles
+        //Adding image views with relevant titles based on the image processing stage
         grid.add(createImageBox("Original Image", originalImageView), 0, 0);
         grid.add(createImageBox("GreyScale Image", greyScaleImageView), 1, 0);
         grid.add(createImageBox("Edge Detection", edgeImageView), 0, 1);
@@ -120,7 +123,7 @@ public class GUI extends Application {
     }
 
     /**
-     * Creates a VBox containing an image label and its ImageView.
+     * Creates a VBox containing an image label and its ImageView
      * @param title the label title
      * @param imageView the associated ImageView
      * @return configured VBox
@@ -134,7 +137,7 @@ public class GUI extends Application {
     }
 
     /**
-     * Creates a configured ImageView for image display.
+     * Creates a configured ImageView with specific sizes for the images being displayed
      * @return new ImageView
      */
     private ImageView createImageView() {
@@ -146,7 +149,7 @@ public class GUI extends Application {
     }
 
     /**
-     * Creates a VBox to display parking classification and distance info.
+     * Creates a VBox on the right to display parking classification and distance info
      * @return configured VBox
      */
     private VBox createInfoBox() {
@@ -165,6 +168,7 @@ public class GUI extends Application {
      */
     private void selectImage() {
     	
+    	//if there is an old output, it will be removed
     	File oldOutput = new File("output/image_0_path.png");
     	oldOutput.delete();
     	
@@ -173,13 +177,14 @@ public class GUI extends Application {
         fileChooser.getExtensionFilters().add(
             new FileChooser.ExtensionFilter("Image Files", "*.jpg", "*.png"));
 
-        // Open from data directory if available
+        //open from data directory if available (for ease of access)
         File dataDir = new File("data");
         if (dataDir.exists()) {
             fileChooser.setInitialDirectory(dataDir);
         }
 
-        // Show dialog and set image if a file is chosen
+        //Show file chooser dialog and set the image if a file is chosen
+        
         selectedFile = fileChooser.showOpenDialog(null);
         if (selectedFile != null) {
             try {
@@ -195,29 +200,29 @@ public class GUI extends Application {
     }
 
     /**
-     * Processes the selected image and displays the output images and classification.
+     * Processes the selected image and displays the output images and classification
      */
     private void displayProcessedImages() {
         if (selectedFile == null) return;
 
         try {
-            processBtn.setDisable(true); // Prevent multiple clicks during processing
+            processBtn.setDisable(true); //Prevent multiple clicks during processing
             imageProcessor = new Image_Processor();
 
-            // Extract base file name
+            //Extract base file name
             String fileName = selectedFile.getName();
             String baseName = fileName.substring(0, fileName.lastIndexOf("."));
 
-            // Output file for processed grid (path)
+            //Output file for processed grid (path)
             String gridFile = "output/" + baseName + "_path.png";
 
-            // Call processor on selected image and corresponding metadata
+            //Call processor on selected image and corresponding metadata
             imageProcessor.processImage(
                 "data/" + fileName,
                 "data/" + baseName + "_meta.jpg",
                 fileCounter);
 
-            // Display processed outputs
+            //Display processed outputs
             System.out.println("Displaying the images before path");
             
             greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
@@ -228,7 +233,7 @@ public class GUI extends Application {
 //            gridImageView.setImage(new Image(new File("output/image_0_path.png").toURI().toString()));
             
 
-            // Update classification details
+            //Update classification details based on processed image
             updateClassificationInfo();
             gridImageView.setImage(new Image(new File("output/image_0_path.png").toURI().toString()));
 
@@ -240,7 +245,7 @@ public class GUI extends Application {
     }
 
     /**
-     * Updates classification and distance information based on processed image.
+     * Updates classification and distance information based on processed image
      */
     private void updateClassificationInfo() {
         if (imageProcessor == null || imageProcessor.getGrid() == null) {
@@ -295,7 +300,7 @@ public class GUI extends Application {
                 return;
             }
 
-            // Classification label and color
+            //Classification label and color based on the classification
             Node.DistanceClassification classification = aStar.classifySpot(closestParking, exits);
             classificationLabel.setText("Classification: " + classification.getLabel());
             classificationLabel.setStyle("-fx-text-fill: " + getColorHex(classification.getColor()));
@@ -312,7 +317,7 @@ public class GUI extends Application {
     }
 
     /**
-     * Converts an RGB int value to hex color string.
+     * Converts an RGB int value to hex color string. This method required research on RGB and HEX colours.
      * @param rgb integer RGB value
      * @return hex string representation
      */
@@ -321,21 +326,22 @@ public class GUI extends Application {
     }
 
     /**
-     * Resets the UI and internal state.
+     * Resets the UI and internal state. This allows for another image to be processed.
      */
     private void reset() {
-        // Clear image views
+    	
+        //Clear image views
         originalImageView.setImage(null);
         greyScaleImageView.setImage(null);
         edgeImageView.setImage(null);
         gridImageView.setImage(null);
 
-        // Reset control states
+        //Reset button control states
         processBtn.setDisable(true);
         selectedFile = null;
         imageProcessor = null;
 
-        // Reset labels
+        //Reset labels
         distanceLabel.setText("Distance to exit: -");
         classificationLabel.setText("Classification: Not processed");
         classificationLabel.setStyle("");
