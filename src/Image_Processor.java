@@ -544,7 +544,10 @@ import javafx.util.Pair;
 			}
 			//Create and place the entrance Node
 			Node entranceNode = new Node(entranceGridX, entranceGridY, Node.NodeType.ENTRANCE, false);
-			grid[entranceGridY][entranceGridX] = entranceNode;
+			if(entranceGridY < grid.length && entranceGridX < grid[0].length) {
+				grid[entranceGridY][entranceGridX] = entranceNode;
+			}
+			
 			this.entrance = entranceNode;
 			System.out.println("Entrance Grid X: " + entranceGridX + ", Y: " + entranceGridY);
 
@@ -631,14 +634,14 @@ import javafx.util.Pair;
 		}
 		
 		
-		public void updateGrid(Node[][] grid, List<Node> path, String filePath) { 
+		public void updateGrid(Node[][] grid, List<Node> path, int index) { 
 			for(Node n : path) {
 				
 					grid[n.getY()][n.getX()].setType(Node.NodeType.PATH);	
 			}
 			BufferedImage image = visualizeGrid(grid, scale);
 			try {
-				ImageIO.write(image, "png", new File(filePath));
+				ImageIO.write(image, "png", new File("output/image_" + index + "_path.png"));
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

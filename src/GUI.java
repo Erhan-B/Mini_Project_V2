@@ -32,7 +32,8 @@ public class GUI extends Application {
     private Label distanceLabel;
     private File selectedFile;
     private Image_Processor imageProcessor;
-
+    
+    private int fileCounter = 0;
     /**
      * The entry point for the JavaFX application.
      * @param primaryStage the primary window of the application.
@@ -163,6 +164,10 @@ public class GUI extends Application {
      * Opens a file chooser to allow the user to select an image for processing.
      */
     private void selectImage() {
+    	
+    	File oldOutput = new File("output/image_0_path.png");
+    	oldOutput.delete();
+    	
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Parking Lot Image");
         fileChooser.getExtensionFilters().add(
@@ -210,15 +215,22 @@ public class GUI extends Application {
             imageProcessor.processImage(
                 "data/" + fileName,
                 "data/" + baseName + "_meta.jpg",
-                0);
+                fileCounter);
 
             // Display processed outputs
+            System.out.println("Displaying the images before path");
+            
             greyScaleImageView.setImage(new Image(new File("output/image_0_greyscale.png").toURI().toString()));
             edgeImageView.setImage(new Image(new File("output/image_0_edge.png").toURI().toString()));
-            gridImageView.setImage(new Image(new File(gridFile).toURI().toString()));
+            
+            System.out.println("Displaying the path image");
+            
+//            gridImageView.setImage(new Image(new File("output/image_0_path.png").toURI().toString()));
+            
 
             // Update classification details
             updateClassificationInfo();
+            gridImageView.setImage(new Image(new File("output/image_0_path.png").toURI().toString()));
 
         } catch (Exception e) {
             showAlert("Processing Error", "Failed to process image: " + e.getMessage());
@@ -288,6 +300,9 @@ public class GUI extends Application {
             classificationLabel.setText("Classification: " + classification.getLabel());
             classificationLabel.setStyle("-fx-text-fill: " + getColorHex(classification.getColor()));
             distanceLabel.setText(String.format("Distance to exit: %.2f units", distance));
+            
+            System.out.println("Adding Path!!!!!");
+            imageProcessor.updateGrid(imageProcessor.getGrid(), dijkstra.getPathClosest(), fileCounter);
 
         } catch (Exception e) {
             distanceLabel.setText("Distance to exit: Error");
