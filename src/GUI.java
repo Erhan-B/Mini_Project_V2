@@ -39,7 +39,7 @@ public class GUI extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
-        // Initialize UI components
+        // Initializing the UI components
         initializeComponents();
         
         // Set up layout components
@@ -47,7 +47,7 @@ public class GUI extends Application {
         GridPane imageGrid = createImageGrid();
         VBox infoBox = createInfoBox();
         
-        // Main layout container
+        // Main layout container and setting its positions
         BorderPane root = new BorderPane();
         root.setTop(buttonBox);
         root.setCenter(imageGrid);
@@ -65,13 +65,13 @@ public class GUI extends Application {
      * Initializes all GUI components and their actions.
      */
     private void initializeComponents() {
-        // Set up image views
+        // Setting up image views for displaying the steps 
         originalImageView = createImageView();
         greyScaleImageView = createImageView();
         edgeImageView = createImageView();
         gridImageView = createImageView();
         
-        // Set up control buttons
+        // Setting up control buttons for user interaction 
         selectImageBtn = new Button("Select Image");
         processBtn = new Button("Process Image");
         processBtn.setDisable(true); // Disabled until image is selected
