@@ -3,6 +3,16 @@
  * @version Mini_Project
  */
 
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.image.*;
+import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
+import java.io.File;
+import java.util.List;
+
+
 /**
  * GUI is a JavaFX application for visualizing parking lot image processing of the path to the closest 
  * available parking spot to the entrance.
@@ -10,19 +20,7 @@
  * and display intermediate and final results including classification (using A*) 
  * and distance information to the exit.
  */
-import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.image.*;
-import javafx.scene.layout.*;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
-import java.io.File;
-import java.util.List;
-
-public class GUI extends Application {
+public class GUI {
     private ImageView originalImageView;
     private ImageView greyScaleImageView;
     private ImageView edgeImageView;
@@ -36,13 +34,13 @@ public class GUI extends Application {
     private Image_Processor imageProcessor;
     
     private int fileCounter = 0;
+
     /**
-     * The entry point for the JavaFX application.
-     * @param primaryStage the primary window of the application.
+     * Parameterized constructor to set up the GUI
+     * @param root the BorderPane root for the scene
      */
-    @Override
-    public void start(Stage primaryStage) {
-        //Initializing the UI components
+    public GUI(BorderPane root) {
+    	//Initializing the UI components
         initializeComponents();
         
         //Setting up layout components
@@ -51,17 +49,10 @@ public class GUI extends Application {
         VBox infoBox = createInfoBox();
         
         //Main layout container and setting its positions
-        BorderPane root = new BorderPane();
         root.setTop(buttonBox);
         root.setCenter(imageGrid);
         root.setRight(infoBox);
         root.setPadding(new Insets(10));
-        
-        //Set up and display the scene
-        Scene scene = new Scene(root, 1200, 800);
-        primaryStage.setTitle("Parking Lot Image Processor");
-        primaryStage.setScene(scene);
-        primaryStage.show();
     }
 
     /**
@@ -360,11 +351,4 @@ public class GUI extends Application {
         alert.showAndWait();
     }
 
-    /**
-     * Launches the JavaFX application.
-     * @param args command-line arguments
-     */
-    public static void main(String[] args) {
-        launch(args);
-    }
 }
