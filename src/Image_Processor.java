@@ -1,18 +1,18 @@
-	/**
-	 * @author E Bredell 222024369
-	 * @version Mini_Project
-	 */
-	import java.awt.Color;
-	import java.awt.Graphics2D;
-	import java.awt.image.BufferedImage;
-	import java.io.File;
-	import java.io.FileNotFoundException;
-	import java.io.IOException;
-	import java.util.ArrayList;
-	import java.util.Arrays;
-	import java.util.List;
-	
-	import javax.imageio.ImageIO;
+/**
+ * @author E Bredell 222024369
+ * @version Mini_Project
+ */
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import javafx.util.Pair;
 	
