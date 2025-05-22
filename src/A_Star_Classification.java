@@ -115,7 +115,7 @@ public class A_Star_Classification {
     private List<Node> findPath(Node start, Node target) {
         resetGraphData(start);
         PriorityQueue<Node> toSearch = new PriorityQueue<>(Comparator.comparingDouble(Node::getFScore));
-        Set<Node> closedSet = new HashSet<>();
+        Set<Node> closedSet = new HashSet<>(); //More efficient than a list
         
         start.setGScore(0);
         start.setFScore(heuristic(start, target));
@@ -131,7 +131,7 @@ public class A_Star_Classification {
             closedSet.add(current);
             
             for (Edge edge : current.getEdges()) {
-                Node neighbor = edge.getTo();
+                Node neighbor = edge.getTo(); //Gets the node that the edge is connected to
                 
                 // Skip if neighbor is already evaluated or is an obstacle
                 if (closedSet.contains(neighbor) || 
